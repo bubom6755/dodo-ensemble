@@ -138,6 +138,9 @@ const modalBox = {
   zIndex: 1001,
 };
 
+// Ajout d'une constante pour la liste des utilisateurs (à adapter si besoin)
+const ALL_USERS = ["victor", "user2"];
+
 export default function Home() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
@@ -163,6 +166,8 @@ export default function Home() {
     location: "",
   });
   const [eventFormError, setEventFormError] = useState("");
+  // Ajoute un state pour stocker toutes les réponses du jour
+  const [allTodayResponses, setAllTodayResponses] = useState([]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -181,24 +186,25 @@ export default function Home() {
   }, [router.isReady, router.query.user]);
 
   useEffect(() => {
-    if (userId) fetchTodayResponse();
+    if (userId) {
+      fetchTodayResponses();
+    }
   }, [userId]);
 
   useEffect(() => {
     fetchEvents();
   }, [calendarMonth]);
 
-  async function fetchTodayResponse() {
+  // Nouvelle fonction pour récupérer toutes les réponses du jour
+  async function fetchTodayResponses() {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
       .from("responses")
       .select("*")
-      .eq("user_id", userId)
-      .eq("date", today)
-      .single();
-    if (error && error.code !== "PGRST116") setTodayResponse(null);
-    else setTodayResponse(data);
+      .in("user_id", ALL_USERS)
+      .eq("date", today);
+    if (!error) setAllTodayResponses(data || []);
     setLoading(false);
   }
 
@@ -209,7 +215,7 @@ export default function Home() {
     } else {
       await saveResponse(ans, "");
       setShowReasonInput(false);
-      fetchTodayResponse();
+      fetchTodayResponses(); // Update allTodayResponses
     }
   }
 
@@ -231,14 +237,14 @@ export default function Home() {
         returning: "minimal",
       }
     );
-    fetchTodayResponse();
+    fetchTodayResponses(); // Update allTodayResponses
   }
 
   async function submitReason() {
     await saveResponse(answer, reason);
     setReason("");
     setShowReasonInput(false);
-    fetchTodayResponse();
+    fetchTodayResponses(); // Update allTodayResponses
   }
 
   // RESET pour Victor : supprime la réponse du jour pour tous
@@ -249,7 +255,7 @@ export default function Home() {
       return;
     const today = new Date().toISOString().split("T")[0];
     await supabase.from("responses").delete().eq("date", today);
-    fetchTodayResponse();
+    fetchTodayResponses(); // Update allTodayResponses
   }
 
   async function fetchEvents() {
@@ -292,12 +298,15 @@ export default function Home() {
       setEventFormError("Titre et date obligatoires");
       return;
     }
+    // Corrige la date pour éviter le décalage (prend la date telle quelle, sans timezone)
+    const dateStr = eventForm.date;
     const { error } = await supabase.from("events").upsert({
-      date: eventForm.date,
+      date: dateStr,
       title: eventForm.title,
       description: eventForm.description,
       time: eventForm.time,
       location: eventForm.location,
+      user_id: userId,
     });
     if (error) {
       setEventFormError("Erreur lors de l'enregistrement");
@@ -337,6 +346,40 @@ export default function Home() {
     : "";
   const today = new Date().toISOString().split("T")[0];
 
+  // Affichage logique du message principal
+  let mainMessage = null;
+  let mainColor = "#888";
+  let mainIcon = null;
+  if (allTodayResponses.length === ALL_USERS.length) {
+    // Les deux ont répondu
+    const hasNo = allTodayResponses.some((r) => r.answer === "Non");
+    if (hasNo) {
+      mainMessage = "Non, pas ce soir.";
+      mainColor = "#888";
+      mainIcon = answerIcon["Non"];
+    } else {
+      mainMessage = "Oui, on dort ensemble !";
+      mainColor = "#d0488f";
+      mainIcon = answerIcon["Oui"];
+    }
+  } else if (allTodayResponses.length > 0) {
+    // Un seul a répondu
+    const hasNo = allTodayResponses.some((r) => r.answer === "Non");
+    if (hasNo) {
+      mainMessage = "Non, pas ce soir.";
+      mainColor = "#888";
+      mainIcon = answerIcon["Non"];
+    } else {
+      mainMessage = "En attente de la réponse de l'autre...";
+      mainColor = "#b86fa5";
+      mainIcon = "⏳";
+    }
+  } else {
+    mainMessage = "Pas encore de réponse aujourd'hui.";
+    mainColor = "#888";
+    mainIcon = null;
+  }
+
   return (
     <div style={mainBg}>
       <main
@@ -372,12 +415,12 @@ export default function Home() {
             <div style={{ color: "#b86fa5", fontSize: 20, margin: "24px 0" }}>
               Chargement...
             </div>
-          ) : todayResponse ? (
+          ) : (
             <div
               style={{
                 fontSize: 38,
                 fontWeight: 700,
-                color: todayResponse.answer === "Oui" ? "#d0488f" : "#888",
+                color: mainColor,
                 margin: "32px 0 24px 0",
                 display: "flex",
                 flexDirection: "column",
@@ -385,31 +428,12 @@ export default function Home() {
                 justifyContent: "center",
               }}
             >
-              {answerIcon[todayResponse.answer] || ""}
-              <span style={{ marginTop: 8 }}>
-                {todayResponse.answer === "Oui"
-                  ? "Oui, on dort ensemble !"
-                  : "Non, pas ce soir."}
-              </span>
-              {todayResponse.reason && (
-                <span
-                  style={{
-                    color: "#b86fa5",
-                    fontSize: 16,
-                    marginTop: 8,
-                    fontStyle: "italic",
-                  }}
-                >
-                  — {todayResponse.reason}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div style={{ color: "#888", fontSize: 20, margin: "24px 0" }}>
-              Pas encore de réponse aujourd'hui.
+              {mainIcon && <span style={{ fontSize: 38 }}>{mainIcon}</span>}
+              <span style={{ marginTop: 8 }}>{mainMessage}</span>
             </div>
           )}
-          {!todayResponse && (
+          {/* Affiche les boutons de réponse seulement si l'utilisateur n'a pas encore répondu */}
+          {!allTodayResponses.some((r) => r.user_id === userId) && (
             <div
               style={{
                 display: "flex",
