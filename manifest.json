@@ -1,0 +1,16 @@
+{
+    "name": "Alyssia & Victor",
+    "short_name": "A&V",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#f8d6e0",
+    "icons": [
+      {
+        "src": "/icon-256.png",
+        "sizes": "256x256",
+        "type": "image/png"
+      }
+    ]
+  }
+  

@@ -459,7 +459,7 @@ export default function Home() {
     showToast("Réponse enregistrée !");
     // Envoie une notification à l'autre utilisateur
     const otherUser = ["victor", "alyssia"].find((u) => u !== userId);
-    sendOneSignalNotification({
+    sendNativePushNotification({
       title: `Nouvelle réponse à l'événement`,
       message: `${displayUserName(
         userId
@@ -477,51 +477,69 @@ export default function Home() {
     showToast("Événement supprimé.", "#b86fa5");
   }
 
-  // OneSignal Web Push integration (client only)
+  // Supprime tout le code OneSignal (useEffect, sendOneSignalNotification, etc)
+  // Ajoute la fonction d'envoi de notification push native via l'API Next.js
+  async function sendNativePushNotification({ title, message, targetUserId }) {
+    try {
+      await fetch("/api/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUserId, title, body: message }),
+      });
+      showToast("Notification envoyée !", "#b86fa5");
+    } catch (e) {
+      showToast("Erreur lors de l'envoi de la notification", "red");
+    }
+  }
+
+  const VAPID_PUBLIC_KEY = "TA_CLE_PUBLIQUE_ICI"; // Remplace par ta clé publique
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Charge le script OneSignal si pas déjà présent
-    if (!window.OneSignal) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
-      script.async = true;
-      script.onload = () => {
-        window.OneSignal = window.OneSignal || [];
-        window.OneSignal.push(function () {
-          window.OneSignal.init({
-            appId: "b122d7f9-f382-46ed-89dc-d5626f861e16",
-            notifyButton: { enable: false },
-            serviceWorkerPath: "/OneSignalSDKWorker.js",
-          });
-          // Demande la permission si pas déjà fait
-          window.OneSignal.isPushNotificationsEnabled(function (isEnabled) {
-            if (!isEnabled) {
-              window.OneSignal.showSlidedownPrompt();
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    let swReg;
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      swReg = reg;
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          swReg.pushManager.getSubscription().then(async (sub) => {
+            if (!sub) {
+              const newSub = await swReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+              });
+              await fetch("/api/save-subscription", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ subscription: newSub, userId }),
+              });
             }
           });
-          window.OneSignal.on("subscriptionChange", function (isSubscribed) {
-            if (isSubscribed) showToast("Notifications activées !");
-            else showToast("Notifications désactivées.", "#b86fa5");
-          });
-        });
-      };
-      document.body.appendChild(script);
+        }
+      });
+    });
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
     }
   }, []);
 
-  // Ajoute une fonction pour envoyer une notification à l'autre utilisateur via OneSignal REST API
-  async function sendOneSignalNotification({ title, message, targetUserId }) {
-    // Récupère le playerId de l'autre utilisateur (stocké dans Supabase ou à implémenter)
-    // Ici, on envoie à tous sauf l'utilisateur courant (pour démo)
-    if (!window.OneSignal) return;
-    window.OneSignal.push(function () {
-      window.OneSignal.sendSelfNotification(title, message, null, null, {
-        notificationType: "event-response",
-        sender: userId,
-        target: targetUserId,
+  // Affiche un effet visuel/bouton si notifications activées
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.pushManager.getSubscription().then((sub) => {
+        setNotifEnabled(!!sub);
       });
     });
-  }
+  }, []);
 
   return (
     <div style={mainBg}>
@@ -545,6 +563,26 @@ export default function Home() {
           }}
         >
           {toast.message}
+        </div>
+      )}
+      {notifEnabled && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            background: "#fff0fa",
+            color: "#d0488f",
+            border: "1.5px solid #d0488f",
+            borderRadius: 12,
+            padding: "10px 22px",
+            fontWeight: 600,
+            fontSize: 15,
+            boxShadow: "0 2px 16px #ffd6ef55",
+            zIndex: 2000,
+          }}
+        >
+          Notifications activées !
         </div>
       )}
       <main
@@ -1063,7 +1101,7 @@ export default function Home() {
                             />
                             <button
                               onClick={() => {
-                                sendOneSignalNotification({
+                                sendNativePushNotification({
                                   title: `Petit rappel 💬`,
                                   message: reminderMsg.trim()
                                     ? reminderMsg
