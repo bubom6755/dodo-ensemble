@@ -138,8 +138,8 @@ const modalBox = {
   zIndex: 1001,
 };
 
-// Ajout d'une constante pour la liste des utilisateurs (à adapter si besoin)
-const ALL_USERS = ["victor", "user2"];
+// Ajout d'une constante pour la liste des utilisateurs (fixe)
+const ALL_USERS = ["victor", "alyssia"];
 
 export default function Home() {
   const router = useRouter();
@@ -168,6 +168,29 @@ export default function Home() {
   const [eventFormError, setEventFormError] = useState("");
   // Ajoute un state pour stocker toutes les réponses du jour
   const [allTodayResponses, setAllTodayResponses] = useState([]);
+  // Ajoute un state pour stocker les réponses aux événements
+  const [eventResponses, setEventResponses] = useState([]);
+  // Ajoute le champ comment dans la gestion des réponses aux événements
+  const [eventComment, setEventComment] = useState("");
+  // Ajoute un state pour la notification
+  const [toast, setToast] = useState(null);
+  // Ajoute un state pour suivre le nombre de relances par event et user
+  const [reminders, setReminders] = useState({}); // { [eventId_userId]: count }
+  const [reminderMsg, setReminderMsg] = useState("");
+
+  // Fonction utilitaire pour afficher une notification
+  function showToast(message, color = "#d0488f") {
+    setToast({ message, color });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  // Fonction utilitaire pour incrémenter le nombre de relances
+  function incrementReminder(eventId, userId) {
+    setReminders((prev) => {
+      const key = `${eventId}_${userId}`;
+      return { ...prev, [key]: (prev[key] || 0) + 1 };
+    });
+  }
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -204,7 +227,10 @@ export default function Home() {
       .select("*")
       .in("user_id", ALL_USERS)
       .eq("date", today);
-    if (!error) setAllTodayResponses(data || []);
+    if (!error)
+      setAllTodayResponses(
+        (data || []).filter((r) => ALL_USERS.includes(r.user_id))
+      );
     setLoading(false);
   }
 
@@ -346,26 +372,33 @@ export default function Home() {
     : "";
   const today = new Date().toISOString().split("T")[0];
 
-  // Affichage logique du message principal
+  // Affichage logique du message principal (corrigé)
   let mainMessage = null;
   let mainColor = "#888";
   let mainIcon = null;
-  if (allTodayResponses.length === ALL_USERS.length) {
+  // On ne considère que les réponses des deux users attendus
+  const responsesMap = {};
+  allTodayResponses.forEach((r) => {
+    responsesMap[r.user_id] = r.answer;
+  });
+  const nbReponses = Object.keys(responsesMap).length;
+  if (nbReponses === ALL_USERS.length) {
     // Les deux ont répondu
-    const hasNo = allTodayResponses.some((r) => r.answer === "Non");
-    if (hasNo) {
+    if (Object.values(responsesMap).some((ans) => ans === "Non")) {
       mainMessage = "Non, pas ce soir.";
       mainColor = "#888";
       mainIcon = answerIcon["Non"];
-    } else {
+    } else if (Object.values(responsesMap).every((ans) => ans === "Oui")) {
       mainMessage = "Oui, on dort ensemble !";
       mainColor = "#d0488f";
       mainIcon = answerIcon["Oui"];
+    } else {
+      mainMessage = "En attente de la réponse de l'autre...";
+      mainColor = "#b86fa5";
+      mainIcon = "⏳";
     }
-  } else if (allTodayResponses.length > 0) {
-    // Un seul a répondu
-    const hasNo = allTodayResponses.some((r) => r.answer === "Non");
-    if (hasNo) {
+  } else if (nbReponses > 0) {
+    if (Object.values(responsesMap).some((ans) => ans === "Non")) {
       mainMessage = "Non, pas ce soir.";
       mainColor = "#888";
       mainIcon = answerIcon["Non"];
@@ -380,8 +413,140 @@ export default function Home() {
     mainIcon = null;
   }
 
+  // Ajoute une fonction utilitaire pour afficher le prénom
+  function displayUserName(userId) {
+    if (userId === "victor") return "Victor";
+    if (userId === "alyssia") return "Alyssia";
+    return userId;
+  }
+
+  // Ajoute un effet pour charger les réponses de l'event sélectionné
+  useEffect(() => {
+    if (showEventModal && modalEvent) {
+      fetchEventResponses(modalEvent.id);
+    }
+  }, [showEventModal, modalEvent]);
+
+  // Quand on ouvre la popup, pré-remplir le commentaire si l'utilisateur a déjà répondu
+  useEffect(() => {
+    if (showEventModal && modalEvent) {
+      fetchEventResponses(modalEvent.id);
+      const resp = eventResponses.find((r) => r.user_id === userId);
+      setEventComment(resp ? resp.comment || "" : "");
+    }
+    // eslint-disable-next-line
+  }, [showEventModal, modalEvent, userId]);
+
+  async function fetchEventResponses(eventId) {
+    const { data, error } = await supabase
+      .from("event_responses")
+      .select("*")
+      .eq("event_id", eventId);
+    if (!error) setEventResponses(data || []);
+  }
+
+  // Modification de la fonction de réponse à un événement pour inclure le commentaire
+  async function handleEventAnswer(answer) {
+    if (!modalEvent) return;
+    await supabase.from("event_responses").upsert({
+      event_id: modalEvent.id,
+      user_id: userId,
+      answer,
+      comment: eventComment,
+      created_at: new Date().toISOString(),
+    });
+    fetchEventResponses(modalEvent.id);
+    showToast("Réponse enregistrée !");
+    // Envoie une notification à l'autre utilisateur
+    const otherUser = ["victor", "alyssia"].find((u) => u !== userId);
+    sendOneSignalNotification({
+      title: `Nouvelle réponse à l'événement`,
+      message: `${displayUserName(
+        userId
+      )} a répondu "${answer}" à l'événement : ${modalEvent.title}`,
+      targetUserId: otherUser,
+    });
+  }
+
+  async function handleDeleteEvent() {
+    if (!modalEvent) return;
+    if (!window.confirm("Supprimer cet événement ?")) return;
+    await supabase.from("events").delete().eq("id", modalEvent.id);
+    setShowEventModal(false);
+    fetchEvents();
+    showToast("Événement supprimé.", "#b86fa5");
+  }
+
+  // OneSignal Web Push integration (client only)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Charge le script OneSignal si pas déjà présent
+    if (!window.OneSignal) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
+      script.async = true;
+      script.onload = () => {
+        window.OneSignal = window.OneSignal || [];
+        window.OneSignal.push(function () {
+          window.OneSignal.init({
+            appId: "b122d7f9-f382-46ed-89dc-d5626f861e16",
+            notifyButton: { enable: false },
+            serviceWorkerPath: "/OneSignalSDKWorker.js",
+          });
+          // Demande la permission si pas déjà fait
+          window.OneSignal.isPushNotificationsEnabled(function (isEnabled) {
+            if (!isEnabled) {
+              window.OneSignal.showSlidedownPrompt();
+            }
+          });
+          window.OneSignal.on("subscriptionChange", function (isSubscribed) {
+            if (isSubscribed) showToast("Notifications activées !");
+            else showToast("Notifications désactivées.", "#b86fa5");
+          });
+        });
+      };
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  // Ajoute une fonction pour envoyer une notification à l'autre utilisateur via OneSignal REST API
+  async function sendOneSignalNotification({ title, message, targetUserId }) {
+    // Récupère le playerId de l'autre utilisateur (stocké dans Supabase ou à implémenter)
+    // Ici, on envoie à tous sauf l'utilisateur courant (pour démo)
+    if (!window.OneSignal) return;
+    window.OneSignal.push(function () {
+      window.OneSignal.sendSelfNotification(title, message, null, null, {
+        notificationType: "event-response",
+        sender: userId,
+        target: targetUserId,
+      });
+    });
+  }
+
   return (
     <div style={mainBg}>
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#fff0fa",
+            color: toast.color,
+            border: `1.5px solid ${toast.color}`,
+            borderRadius: 12,
+            padding: "12px 32px",
+            fontWeight: 600,
+            fontSize: 17,
+            boxShadow: "0 2px 16px #ffd6ef55",
+            zIndex: 2000,
+            transition: "opacity 0.3s",
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
       <main
         style={{
           maxWidth: 420,
@@ -607,30 +772,340 @@ export default function Home() {
         {/* MODAL DETAILS EVENEMENT */}
         {showEventModal && modalEvent && (
           <div style={modalOverlay} onClick={closeEventModal}>
-            <div style={modalBox} onClick={(e) => e.stopPropagation()}>
-              <h2 style={{ color: "#d0488f", fontSize: 22, marginBottom: 8 }}>
-                {modalEvent.title}
-              </h2>
-              <div style={{ color: "#b86fa5", marginBottom: 8 }}>
-                {modalEvent.date}
-                {modalEvent.time && " à " + modalEvent.time}
-              </div>
-              {modalEvent.location && (
-                <div style={{ color: "#888", marginBottom: 8 }}>
-                  📍 {modalEvent.location}
-                </div>
-              )}
-              {modalEvent.description && (
-                <div style={{ color: "#444", marginBottom: 12 }}>
-                  {modalEvent.description}
-                </div>
-              )}
-              <button
-                style={{ ...bigBtn, fontSize: 16, padding: "0.5rem 1.2rem" }}
-                onClick={closeEventModal}
+            <div
+              style={{
+                ...modalBox,
+                maxWidth: 420,
+                padding: 0,
+                overflow: "hidden",
+                boxShadow: "0 8px 40px #b86fa555",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
+                  padding: "24px 32px 18px 32px",
+                  borderTopLeftRadius: 16,
+                  borderTopRightRadius: 16,
+                  borderBottom: "1px solid #f3d6e7",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
               >
-                Fermer
-              </button>
+                <div style={{ fontSize: 32, color: "#d0488f" }}>📅</div>
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 22,
+                      color: "#d0488f",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {modalEvent.title}
+                  </div>
+                  <div
+                    style={{ color: "#b86fa5", fontSize: 16, fontWeight: 500 }}
+                  >
+                    {modalEvent.date}{" "}
+                    {modalEvent.time && (
+                      <span style={{ marginLeft: 8 }}>
+                        ⏰ {modalEvent.time}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={closeEventModal}
+                  style={{
+                    marginLeft: "auto",
+                    background: "none",
+                    border: "none",
+                    fontSize: 26,
+                    color: "#b86fa5",
+                    cursor: "pointer",
+                    padding: 0,
+                    lineHeight: 1,
+                    transition: "color 0.15s",
+                  }}
+                  title="Fermer"
+                >
+                  ×
+                </button>
+              </div>
+              <div style={{ padding: "22px 32px 18px 32px" }}>
+                {modalEvent.location && (
+                  <div
+                    style={{
+                      color: "#b86fa5",
+                      fontSize: 16,
+                      marginBottom: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 20 }}>📍</span>
+                    <span>{modalEvent.location}</span>
+                  </div>
+                )}
+                {modalEvent.description && (
+                  <div
+                    style={{
+                      color: "#444",
+                      fontSize: 16,
+                      marginBottom: 18,
+                      background: "#fff8fc",
+                      borderRadius: 8,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        color: "#b86fa5",
+                        marginRight: 8,
+                      }}
+                    >
+                      📝
+                    </span>
+                    {modalEvent.description}
+                  </div>
+                )}
+                <div
+                  style={{
+                    borderTop: "1px solid #f3d6e7",
+                    margin: "18px 0 0 0",
+                    paddingTop: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 18, color: "#b86fa5" }}>👤</span>
+                  <span style={{ color: "#b86fa5", fontWeight: 600 }}>
+                    Créé par {displayUserName(modalEvent.user_id)}
+                  </span>
+                  {/* Bouton supprimer visible uniquement pour le créateur */}
+                  {modalEvent.user_id === userId && (
+                    <button
+                      onClick={handleDeleteEvent}
+                      style={{
+                        marginLeft: 16,
+                        background: "#fff0fa",
+                        color: "#d0488f",
+                        border: "1px solid #ffd6ef",
+                        borderRadius: 8,
+                        padding: "6px 14px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  )}
+                </div>
+                {/* Affichage des réponses Oui/Non */}
+                <div
+                  style={{
+                    marginTop: 18,
+                    marginBottom: 8,
+                    display: "flex",
+                    gap: 18,
+                    alignItems: "center",
+                  }}
+                >
+                  {["victor", "alyssia"].map((uid) => {
+                    const resp = eventResponses.find((r) => r.user_id === uid);
+                    return (
+                      <div
+                        key={uid}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          background: "#f8f8fa",
+                          borderRadius: 8,
+                          padding: "6px 12px",
+                        }}
+                      >
+                        <span style={{ color: "#b86fa5", fontWeight: 600 }}>
+                          {displayUserName(uid)}
+                        </span>
+                        {resp ? (
+                          <>
+                            <span style={{ fontSize: 18, marginLeft: 4 }}>
+                              {resp.answer === "Oui" ? "💗 Oui" : "💔 Non"}
+                            </span>
+                            {resp.comment && (
+                              <span
+                                style={{
+                                  color: "#b86fa5",
+                                  fontSize: 14,
+                                  marginLeft: 8,
+                                }}
+                              >
+                                🗨️ {resp.comment}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span
+                            style={{
+                              color: "#bbb",
+                              fontSize: 15,
+                              marginLeft: 4,
+                            }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Si ce n'est pas le créateur, proposer Oui/Non + commentaire, même si déjà répondu */}
+                {modalEvent.user_id !== userId && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                      <button
+                        onClick={() => handleEventAnswer("Oui")}
+                        style={{
+                          ...bigBtn,
+                          fontSize: 16,
+                          background: eventResponses.find(
+                            (r) => r.user_id === userId && r.answer === "Oui"
+                          )
+                            ? "#ffeef8"
+                            : undefined,
+                          color: eventResponses.find(
+                            (r) => r.user_id === userId && r.answer === "Oui"
+                          )
+                            ? "#d0488f"
+                            : undefined,
+                        }}
+                      >
+                        Oui 💗
+                      </button>
+                      <button
+                        onClick={() => handleEventAnswer("Non")}
+                        style={{
+                          ...bigBtn,
+                          fontSize: 16,
+                          background: eventResponses.find(
+                            (r) => r.user_id === userId && r.answer === "Non"
+                          )
+                            ? "#ffeef8"
+                            : undefined,
+                          color: eventResponses.find(
+                            (r) => r.user_id === userId && r.answer === "Non"
+                          )
+                            ? "#d0488f"
+                            : undefined,
+                        }}
+                      >
+                        Non 💔
+                      </button>
+                    </div>
+                    <textarea
+                      placeholder="Ajouter un commentaire (facultatif)"
+                      value={eventComment}
+                      onChange={(e) => setEventComment(e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        width: "100%",
+                        minHeight: 40,
+                        marginBottom: 8,
+                      }}
+                    />
+                    <button
+                      onClick={() =>
+                        handleEventAnswer(
+                          eventResponses.find((r) => r.user_id === userId)
+                            ?.answer || "Oui"
+                        )
+                      }
+                      style={{
+                        ...bigBtn,
+                        fontSize: 15,
+                        padding: "0.5rem 1.2rem",
+                      }}
+                    >
+                      Enregistrer
+                    </button>
+                    {/* Bouton Relancer */}
+                    {(() => {
+                      const otherUser = ["victor", "alyssia"].find(
+                        (u) => u !== userId
+                      );
+                      const otherHasAnswered = eventResponses.find(
+                        (r) => r.user_id === otherUser
+                      );
+                      const reminderKey = modalEvent.id + "_" + userId;
+                      const reminderCount = reminders[reminderKey] || 0;
+                      const maxReminders = 2;
+                      if (!otherHasAnswered) {
+                        return (
+                          <div style={{ marginTop: 12 }}>
+                            <textarea
+                              placeholder="Message de rappel personnalisé"
+                              value={reminderMsg}
+                              onChange={(e) => setReminderMsg(e.target.value)}
+                              style={{
+                                ...inputStyle,
+                                width: "100%",
+                                minHeight: 32,
+                                marginBottom: 6,
+                              }}
+                              maxLength={120}
+                            />
+                            <button
+                              onClick={() => {
+                                sendOneSignalNotification({
+                                  title: `Petit rappel 💬`,
+                                  message: reminderMsg.trim()
+                                    ? reminderMsg
+                                    : `${displayUserName(
+                                        userId
+                                      )} te rappelle de répondre à l'événement : ${
+                                        modalEvent.title
+                                      }`,
+                                  targetUserId: otherUser,
+                                });
+                                showToast("Rappel envoyé !", "#b86fa5");
+                                incrementReminder(modalEvent.id, userId);
+                                setReminderMsg("");
+                              }}
+                              style={{
+                                ...bigBtn,
+                                fontSize: 15,
+                                background: "#fff0fa",
+                                color: "#b86fa5",
+                                border: "1px solid #b86fa5",
+                                marginTop: 2,
+                                opacity:
+                                  reminderCount >= maxReminders ? 0.5 : 1,
+                                cursor:
+                                  reminderCount >= maxReminders
+                                    ? "not-allowed"
+                                    : "pointer",
+                              }}
+                              disabled={reminderCount >= maxReminders}
+                            >
+                              Relancer {displayUserName(otherUser)} (
+                              {maxReminders - reminderCount} restant
+                              {maxReminders - reminderCount > 1 ? "s" : ""})
+                            </button>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
