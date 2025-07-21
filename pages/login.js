@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { supabase } from "../utils/supabaseClient";
 
 export default function Login() {
   const [userId, setUserId] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -15,12 +18,24 @@ export default function Login() {
     }
   }, [router]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (userId.trim() !== "") {
-      localStorage.setItem("userId", userId.trim());
-      router.replace("/");
+    setError("");
+    if (userId.trim() === "") return;
+    setLoading(true);
+    // Vérifie dans la BDD
+    const { data, error: dbError } = await supabase
+      .from("users")
+      .select("user_id")
+      .eq("user_id", userId.trim())
+      .single();
+    setLoading(false);
+    if (dbError || !data) {
+      setError("Utilisateur inconnu. Veuillez contacter l'administrateur.");
+      return;
     }
+    localStorage.setItem("userId", userId.trim());
+    router.replace("/");
   }
 
   return (
@@ -63,6 +78,7 @@ export default function Login() {
         />
         <button
           type="submit"
+          disabled={loading}
           style={{
             background: "#ffeef8",
             color: "#d0488f",
@@ -72,10 +88,12 @@ export default function Login() {
             fontWeight: 600,
             fontSize: 17,
             cursor: "pointer",
+            opacity: loading ? 0.6 : 1,
           }}
         >
-          Se connecter
+          {loading ? "Connexion..." : "Se connecter"}
         </button>
+        {error && <div style={{ color: "red", marginTop: 16 }}>{error}</div>}
       </form>
     </div>
   );

@@ -181,6 +181,7 @@ export default function Home() {
   const [showGlobalNotif, setShowGlobalNotif] = useState(false);
   const [globalNotifTitle, setGlobalNotifTitle] = useState("");
   const [globalNotifMsg, setGlobalNotifMsg] = useState("");
+  const [userName, setUserName] = useState("");
 
   // Fonction utilitaire pour afficher une notification
   function showToast(message, color = "#d0488f") {
@@ -221,6 +222,26 @@ export default function Home() {
   useEffect(() => {
     fetchEvents();
   }, [calendarMonth]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("userId");
+      if (!stored || stored.trim() === "") {
+        router.replace("/login");
+      } else {
+        // Récupère le prénom depuis Supabase
+        supabase
+          .from("users")
+          .select("name")
+          .eq("user_id", stored)
+          .single()
+          .then(({ data }) => {
+            if (data && data.name) setUserName(data.name);
+            else setUserName(stored);
+          });
+      }
+    }
+  }, [router]);
 
   // Nouvelle fonction pour récupérer toutes les réponses du jour
   async function fetchTodayResponses() {
@@ -596,7 +617,7 @@ export default function Home() {
         }}
       >
         <div style={{ ...cardStyle, marginTop: 36, textAlign: "center" }}>
-          {userId && (
+          {userName && (
             <div
               style={{
                 fontWeight: 700,
@@ -605,7 +626,7 @@ export default function Home() {
                 marginBottom: 8,
               }}
             >
-              Bonjour {displayName} !
+              Bonjour {userName} !
             </div>
           )}
           <h1
