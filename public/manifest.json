@@ -1,21 +1,19 @@
 {
   "name": "Dodo Ensemble",
   "short_name": "Dodo",
+  "start_url": ".",
   "display": "standalone",
-  "start_url": "/?source=pwa",
+  "background_color": "#fff0fa",
+  "theme_color": "#fff0fa",
+  "description": "App de notifications et calendrier pour Victor & Alyssia.",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-256.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
