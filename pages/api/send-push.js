@@ -1,15 +1,8 @@
-import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 
 const VAPID_PUBLIC_KEY =
   "BInzKFIkdJ5js3aBJbZfpJ-JT7Yyqoj0QNMHt8hQLCyRiGUhEu3Al4WbVROXfUaQ02zZeL6RO4UuaMP2lLYbiGA"; // Remplace par ta clé publique
 const VAPID_PRIVATE_KEY = "rtfNQU4_zsaJVLRIpEtoCM6p9Jyvv_BtEwGtH0gRxcQ"; // Remplace par ta clé privée
-
-webpush.setVapidDetails(
-  "mailto:ton@email.com",
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +10,15 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Import dynamique de web-push pour éviter l'erreur de build Next.js
+  const webpush = (await import("web-push")).default;
+
+  webpush.setVapidDetails(
+    "mailto:victor.wambersie@gmail.com",
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+
   if (req.method !== "POST") return res.status(405).end();
   const { userId, title, body } = req.body;
   const { data, error } = await supabase
