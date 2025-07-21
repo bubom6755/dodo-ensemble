@@ -198,37 +198,12 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (!router.isReady) return;
-    let userFromUrl = router.query.user;
-    if (typeof userFromUrl === "string" && userFromUrl.trim() !== "") {
-      setUserId(userFromUrl);
-      localStorage.setItem("userId", userFromUrl);
-    } else {
-      const stored = localStorage.getItem("userId");
-      if (stored && stored.trim() !== "") {
-        setUserId(stored);
-      } else {
-        alert("Aucun utilisateur défini. Ajoutez ?user=victor à l'URL.");
-      }
-    }
-  }, [router.isReady, router.query.user]);
-
-  useEffect(() => {
-    if (userId) {
-      fetchTodayResponses();
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchEvents();
-  }, [calendarMonth]);
-
-  useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("userId");
       if (!stored || stored.trim() === "") {
         router.replace("/login");
       } else {
+        setUserId(stored);
         // Récupère le prénom depuis Supabase
         supabase
           .from("users")
@@ -242,6 +217,16 @@ export default function Home() {
       }
     }
   }, [router]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchTodayResponses();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [calendarMonth]);
 
   // Nouvelle fonction pour récupérer toutes les réponses du jour
   async function fetchTodayResponses() {
