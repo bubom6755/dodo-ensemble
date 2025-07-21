@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 
 export default function Home() {
+  const router = useRouter();
+  const [userId, setUserId] = useState("");
   const [answer, setAnswer] = useState(null);
   const [reason, setReason] = useState("");
   const [showReasonInput, setShowReasonInput] = useState(false);
@@ -9,8 +12,25 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [eventDate, setEventDate] = useState("");
   const [eventTitle, setEventTitle] = useState("");
-  const userId = "user1"; // Pour test, tu peux gérer un vrai auth plus tard
-  const userId2 = "user2";
+
+  // Identification utilisateur via URL ou localStorage
+  useEffect(() => {
+    // On attend que le router soit prêt (Next.js)
+    if (!router.isReady) return;
+    let userFromUrl = router.query.user;
+    if (typeof userFromUrl === "string" && userFromUrl.trim() !== "") {
+      setUserId(userFromUrl);
+      localStorage.setItem("userId", userFromUrl);
+    } else {
+      // Sinon, on lit depuis le localStorage
+      const stored = localStorage.getItem("userId");
+      if (stored && stored.trim() !== "") {
+        setUserId(stored);
+      } else {
+        alert("Aucun utilisateur défini. Ajoutez ?user=victor à l'URL.");
+      }
+    }
+  }, [router.isReady, router.query.user]);
 
   // Charger la réponse du jour et toutes réponses
   useEffect(() => {
@@ -50,6 +70,10 @@ export default function Home() {
 
   async function saveResponse(ans, reasonText) {
     const today = new Date().toISOString().split("T")[0];
+    if (!userId) {
+      alert("Aucun utilisateur défini. Ajoutez ?user=victor à l'URL.");
+      return;
+    }
     // Upsert pour éviter doublons date+user
     const { error } = await supabase.from("responses").upsert(
       {
@@ -87,6 +111,11 @@ export default function Home() {
     }
   }
 
+  // Prénom pour affichage (première lettre en majuscule)
+  const displayName = userId
+    ? userId.charAt(0).toUpperCase() + userId.slice(1)
+    : "";
+
   return (
     <main
       style={{
@@ -97,6 +126,11 @@ export default function Home() {
         color: "#333",
       }}
     >
+      {userId && (
+        <div style={{ marginBottom: 16, fontWeight: 600, fontSize: 18 }}>
+          Bonjour {displayName}
+        </div>
+      )}
       <h1 style={{ color: "#d48abf" }}>Dors-tu avec moi ce soir ?</h1>
       <div>
         <button style={btnStyle} onClick={() => handleAnswer(true)}>
