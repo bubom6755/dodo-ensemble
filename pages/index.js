@@ -177,6 +177,10 @@ export default function Home() {
   // Ajoute un state pour suivre le nombre de relances par event et user
   const [reminders, setReminders] = useState({}); // { [eventId_userId]: count }
   const [reminderMsg, setReminderMsg] = useState("");
+  // Ajoute le formulaire de notification globale en bas de la page
+  const [showGlobalNotif, setShowGlobalNotif] = useState(false);
+  const [globalNotifTitle, setGlobalNotifTitle] = useState("");
+  const [globalNotifMsg, setGlobalNotifMsg] = useState("");
 
   // Fonction utilitaire pour afficher une notification
   function showToast(message, color = "#d0488f") {
@@ -234,6 +238,7 @@ export default function Home() {
     setLoading(false);
   }
 
+  // Ajoute l'envoi de notification push lors de la réponse du jour
   async function handleAnswer(ans) {
     setAnswer(ans);
     if (!ans) {
@@ -241,7 +246,21 @@ export default function Home() {
     } else {
       await saveResponse(ans, "");
       setShowReasonInput(false);
-      fetchTodayResponses(); // Update allTodayResponses
+      fetchTodayResponses();
+      // Notif push à l'autre utilisateur si pas encore répondu
+      const otherUser = ["victor", "alyssia"].find((u) => u !== userId);
+      const otherHasAnswered = allTodayResponses.find(
+        (r) => r.user_id === otherUser
+      );
+      if (!otherHasAnswered) {
+        sendNativePushNotification({
+          title: `Réponse du jour !`,
+          message: `${displayUserName(userId)} a répondu "${
+            ans ? "Oui" : "Non"
+          }" à la question du jour.`,
+          targetUserId: otherUser,
+        });
+      }
     }
   }
 
@@ -492,43 +511,6 @@ export default function Home() {
     }
   }
 
-  const VAPID_PUBLIC_KEY = "TA_CLE_PUBLIQUE_ICI"; // Remplace par ta clé publique
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    let swReg;
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      swReg = reg;
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          swReg.pushManager.getSubscription().then(async (sub) => {
-            if (!sub) {
-              const newSub = await swReg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-              });
-              await fetch("/api/save-subscription", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ subscription: newSub, userId }),
-              });
-            }
-          });
-        }
-      });
-    });
-
-    function urlBase64ToUint8Array(base64String) {
-      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-      const rawData = window.atob(base64);
-      return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-    }
-  }, []);
-
   // Affiche un effet visuel/bouton si notifications activées
   const [notifEnabled, setNotifEnabled] = useState(false);
   useEffect(() => {
@@ -540,6 +522,26 @@ export default function Home() {
       });
     });
   }, []);
+
+  async function sendGlobalNotification() {
+    if (!globalNotifTitle.trim() || !globalNotifMsg.trim()) {
+      showToast("Titre et message requis", "red");
+      return;
+    }
+    await Promise.all(
+      ALL_USERS.map((uid) =>
+        sendNativePushNotification({
+          title: globalNotifTitle,
+          message: globalNotifMsg,
+          targetUserId: uid,
+        })
+      )
+    );
+    showToast("Notification envoyée à tous !", "#b86fa5");
+    setShowGlobalNotif(false);
+    setGlobalNotifTitle("");
+    setGlobalNotifMsg("");
+  }
 
   return (
     <div style={mainBg}>
@@ -1238,6 +1240,70 @@ export default function Home() {
           </div>
         )}
       </main>
+      <div style={{ marginTop: 48, textAlign: "center" }}>
+        {!showGlobalNotif ? (
+          <button
+            style={{
+              ...bigBtn,
+              fontSize: 16,
+              background: "#fff0fa",
+              color: "#b86fa5",
+              border: "1px solid #b86fa5",
+              margin: "auto",
+            }}
+            onClick={() => setShowGlobalNotif(true)}
+          >
+            Notifications
+          </button>
+        ) : (
+          <div
+            style={{
+              display: "inline-block",
+              background: "#fff8fc",
+              border: "1px solid #ffd6ef",
+              borderRadius: 12,
+              padding: 18,
+              minWidth: 260,
+            }}
+          >
+            <div style={{ marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="Titre"
+                value={globalNotifTitle}
+                onChange={(e) => setGlobalNotifTitle(e.target.value)}
+                style={{ ...inputStyle, width: "100%", marginBottom: 8 }}
+              />
+              <textarea
+                placeholder="Message"
+                value={globalNotifMsg}
+                onChange={(e) => setGlobalNotifMsg(e.target.value)}
+                style={{ ...inputStyle, width: "100%", minHeight: 40 }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                style={{
+                  ...bigBtn,
+                  fontSize: 15,
+                  background: "#fff",
+                  color: "#b86fa5",
+                  border: "1px solid #b86fa5",
+                }}
+                onClick={() => setShowGlobalNotif(false)}
+              >
+                Annuler
+              </button>
+              <button
+                style={{ ...bigBtn, fontSize: 15 }}
+                onClick={sendGlobalNotification}
+              >
+                Envoyer
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
