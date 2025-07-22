@@ -11,6 +11,9 @@ export default function Login() {
   const [showLoader, setShowLoader] = useState(false);
   const [hearts, setHearts] = useState([]);
   const [sakuraPetals, setSakuraPetals] = useState([]);
+  const [citation, setCitation] = useState(
+    "L'amour, c'est prendre soin l'un de l'autre chaque jour."
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +38,20 @@ export default function Login() {
       rotation: Math.random() * 360,
     }));
     setSakuraPetals(petalsArray);
+  }, []);
+
+  useEffect(() => {
+    async function fetchCitation() {
+      const { data, error } = await supabase
+        .from("citation")
+        .select("text")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        setCitation(data[0].text);
+      }
+    }
+    fetchCitation();
   }, []);
 
   const handleGoAhead = () => {
@@ -76,8 +93,6 @@ export default function Login() {
       router.replace("/");
     }, 1500);
   };
-
-  const citation = "L'amour, c'est prendre soin l'un de l'autre chaque jour.";
 
   if (showLoader) {
     return (
@@ -466,7 +481,7 @@ export default function Login() {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 0;
           animation: fadeIn 0.3s ease-out;
         }
 
@@ -484,6 +499,7 @@ export default function Login() {
           border: 1px solid rgba(255, 255, 255, 0.8);
           overflow: hidden;
           animation: modalSlideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          margin: 0 auto;
         }
 
         .modal-header {
@@ -817,6 +833,16 @@ export default function Login() {
           .main-button {
             width: 90%;
             left: 5%;
+          }
+          .modal-overlay {
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+          }
+          .modal-container {
+            width: 98vw;
+            max-width: 98vw;
+            margin: 0 auto;
           }
         }
       `}</style>

@@ -304,6 +304,15 @@ export default function Home() {
   const [showSubJson, setShowSubJson] = useState(false);
   const [subJson, setSubJson] = useState("");
 
+  // Citation depuis la BDD
+  const [citation, setCitation] = useState(
+    "L'amour, c'est prendre soin l'un de l'autre chaque jour."
+  );
+  const [editCitation, setEditCitation] = useState(false);
+  const [citationInput, setCitationInput] = useState("");
+  const [citationId, setCitationId] = useState(null);
+  const [citationLoading, setCitationLoading] = useState(false);
+
   // Fonction utilitaire pour afficher une notification
   function showToast(message, color = "#d0488f") {
     setToast({ message, color });
@@ -348,6 +357,24 @@ export default function Home() {
   useEffect(() => {
     fetchEvents();
   }, [calendarMonth]);
+
+  useEffect(() => {
+    async function fetchCitation() {
+      setCitationLoading(true);
+      const { data, error } = await supabase
+        .from("citation")
+        .select("id, text")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        setCitation(data[0].text);
+        setCitationInput(data[0].text);
+        setCitationId(data[0].id);
+      }
+      setCitationLoading(false);
+    }
+    fetchCitation();
+  }, []);
 
   // Nouvelle fonction pour récupérer toutes les réponses du jour
   async function fetchTodayResponses() {
@@ -629,6 +656,18 @@ export default function Home() {
     });
   }
 
+  async function handleSaveCitation() {
+    if (!citationInput.trim() || !citationId) return;
+    setCitationLoading(true);
+    await supabase
+      .from("citation")
+      .update({ text: citationInput, updated_at: new Date().toISOString() })
+      .eq("id", citationId);
+    setEditCitation(false);
+    setCitation(citationInput);
+    setCitationLoading(false);
+  }
+
   async function handleDeleteEvent() {
     if (!modalEvent) return;
     if (!window.confirm("Supprimer cet événement ?")) return;
@@ -738,6 +777,8 @@ export default function Home() {
       const sub = await reg.pushManager.getSubscription();
       if (!sub) {
         showToast("Aucune subscription trouvée", "red");
+        setSubJson("");
+        setShowSubJson(true);
         return;
       }
       await navigator.clipboard.writeText(JSON.stringify(sub));
@@ -1694,6 +1735,126 @@ export default function Home() {
             </div>
           </div>
         )}
+        {/* Citation en bas, modifiable uniquement par Victor */}
+        <div
+          style={{
+            marginTop: 32,
+            marginBottom: 8,
+            minHeight: 40,
+            width: "100%",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff8fc",
+              border: "1.5px solid #ffd6ef",
+              borderRadius: 14,
+              padding: editCitation ? "18px 18px 14px 18px" : "12px 18px",
+              minWidth: 220,
+              maxWidth: 420,
+              margin: "0 auto",
+              display: "inline-block",
+              boxShadow: editCitation ? "0 2px 12px #ffd6ef33" : "none",
+              transition: "box-shadow 0.2s",
+            }}
+          >
+            {citationLoading ? (
+              <span style={{ color: "#b86fa5", fontWeight: 600, fontSize: 16 }}>
+                Chargement...
+              </span>
+            ) : userId === "victor" ? (
+              editCitation ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={citationInput}
+                    onChange={(e) => setCitationInput(e.target.value)}
+                    onBlur={() => {
+                      if (citationInput.trim() && citationInput !== citation)
+                        handleSaveCitation();
+                      setEditCitation(false);
+                    }}
+                    autoFocus
+                    style={{
+                      fontSize: 16,
+                      padding: 10,
+                      borderRadius: 8,
+                      border: "1.5px solid #ffd6ef",
+                      width: "100%",
+                      marginBottom: 10,
+                      background: "#fff",
+                      textAlign: "center",
+                    }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <button
+                      style={{
+                        ...closeBtn,
+                        fontSize: 15,
+                        padding: "0.6rem 1.5rem",
+                        borderRadius: 18,
+                        minWidth: 90,
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setEditCitation(false);
+                        setCitationInput(citation);
+                      }}
+                      disabled={citationLoading}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#b86fa5",
+                      fontWeight: 600,
+                      fontSize: 16,
+                      cursor: "pointer",
+                      borderBottom: "1px dashed #b86fa5",
+                    }}
+                    title="Cliquez pour modifier"
+                    onClick={() => setEditCitation(true)}
+                  >
+                    {citation}
+                  </span>
+                </div>
+              )
+            ) : (
+              <span style={{ color: "#b86fa5", fontWeight: 600, fontSize: 16 }}>
+                {citation}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
       <style jsx global>{`
         @keyframes hourglass-flip {
