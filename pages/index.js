@@ -638,52 +638,68 @@ export default function Home() {
     }
   }
 
-  // Mobile-first UI styles
+  // Styles mobile-first améliorés
   const mobileMainBg = {
     minHeight: "100vh",
     background: "linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%)",
-    padding: 0,
+    padding: "0 8px",
+    boxSizing: "border-box",
   };
   const mobileCard = {
     background: "#fff",
     borderRadius: 18,
     boxShadow: "0 2px 16px #ffd6ef33",
-    padding: 18,
+    padding: 20,
     margin: "18px 0",
     width: "100%",
-    maxWidth: 420,
+    maxWidth: 480,
     marginLeft: "auto",
     marginRight: "auto",
+    boxSizing: "border-box",
   };
   const mobileBtn = {
     background: "linear-gradient(90deg, #ffeef8 0%, #fff0fa 100%)",
     color: "#d0488f",
     border: "none",
     borderRadius: 32,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 700,
-    padding: "1rem 1.5rem",
-    margin: "0 0 12px 0",
+    padding: "1.1rem 0",
+    margin: "0 0 14px 0",
     width: "100%",
     boxShadow: "0 2px 8px #ffd6ef22",
     cursor: "pointer",
     transition: "transform 0.1s, box-shadow 0.1s",
+    outline: "none",
   };
   const mobileInput = {
-    padding: 14,
+    padding: 16,
     borderRadius: 8,
     border: "1px solid #ffd6ef",
-    fontSize: 17,
-    marginBottom: 12,
+    fontSize: 18,
+    marginBottom: 14,
     background: "#fff8fc",
     width: "100%",
+    boxSizing: "border-box",
   };
   const mobileTextarea = {
     ...mobileInput,
-    minHeight: 80,
+    minHeight: 120,
+    maxHeight: 200,
     fontFamily: "monospace",
-    fontSize: 14,
+    fontSize: 15,
     resize: "vertical",
+    marginBottom: 10,
+    color: "#b86fa5",
+  };
+  const closeBtn = {
+    ...mobileBtn,
+    background: "#fff",
+    color: "#b86fa5",
+    border: "1px solid #b86fa5",
+    margin: 0,
+    fontSize: 16,
+    padding: "0.7rem 0",
   };
 
   return (
@@ -1496,12 +1512,17 @@ export default function Home() {
             Afficher ma subscription
           </button>
           {showSubJson && (
-            <textarea
-              style={mobileTextarea}
-              value={subJson}
-              readOnly
-              onFocus={(e) => e.target.select()}
-            />
+            <div style={{ width: "100%", marginTop: 8, marginBottom: 8 }}>
+              <textarea
+                style={mobileTextarea}
+                value={subJson}
+                readOnly
+                onFocus={(e) => e.target.select()}
+              />
+              <button style={closeBtn} onClick={() => setShowSubJson(false)}>
+                Fermer
+              </button>
+            </div>
           )}
         </div>
       </div>
