@@ -549,6 +549,49 @@ export default function Home() {
     setGlobalNotifMsg("");
   }
 
+  const VAPID_PUBLIC_KEY =
+    "BInzKFIkdJ5js3aBJbZfpJ-JT7Yyqoj0QNMHt8hQLCyRiGUhEu3Al4WbVROXfUaQ02zZeL6RO4UuaMP2lLYbiGA";
+
+  async function forceSubscribeToPush() {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      showToast("Notifications push non supportées", "red");
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        showToast("Permission refusée", "red");
+        return;
+      }
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+      const userId = localStorage.getItem("userId");
+      await fetch("/api/save-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub, userId }),
+      });
+      showToast("Notifications activées !", "#b86fa5");
+    } catch (e) {
+      showToast("Erreur lors de l'abonnement", "red");
+    }
+  }
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  }
+
   return (
     <div style={mainBg}>
       {toast && (
@@ -1246,8 +1289,81 @@ export default function Home() {
           </div>
         )}
       </main>
-      <div style={{ marginTop: 48, textAlign: "center" }}>
-        {!showGlobalNotif ? (
+      <div
+        style={{
+          marginTop: 48,
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", gap: 16 }}>
+          {!showGlobalNotif ? (
+            <button
+              style={{
+                ...bigBtn,
+                fontSize: 16,
+                background: "#fff0fa",
+                color: "#b86fa5",
+                border: "1px solid #b86fa5",
+                margin: "auto",
+              }}
+              onClick={() => setShowGlobalNotif(true)}
+            >
+              Notifications
+            </button>
+          ) : (
+            <div
+              style={{
+                display: "inline-block",
+                background: "#fff8fc",
+                border: "1px solid #ffd6ef",
+                borderRadius: 12,
+                padding: 18,
+                minWidth: 260,
+              }}
+            >
+              <div style={{ marginBottom: 8 }}>
+                <input
+                  type="text"
+                  placeholder="Titre"
+                  value={globalNotifTitle}
+                  onChange={(e) => setGlobalNotifTitle(e.target.value)}
+                  style={{ ...inputStyle, width: "100%", marginBottom: 8 }}
+                />
+                <textarea
+                  placeholder="Message"
+                  value={globalNotifMsg}
+                  onChange={(e) => setGlobalNotifMsg(e.target.value)}
+                  style={{ ...inputStyle, width: "100%", minHeight: 40 }}
+                />
+              </div>
+              <div
+                style={{ display: "flex", gap: 10, justifyContent: "center" }}
+              >
+                <button
+                  style={{
+                    ...bigBtn,
+                    fontSize: 15,
+                    background: "#fff",
+                    color: "#b86fa5",
+                    border: "1px solid #b86fa5",
+                  }}
+                  onClick={() => setShowGlobalNotif(false)}
+                >
+                  Annuler
+                </button>
+                <button
+                  style={{ ...bigBtn, fontSize: 15 }}
+                  onClick={sendGlobalNotification}
+                >
+                  Envoyer
+                </button>
+              </div>
+            </div>
+          )}
           <button
             style={{
               ...bigBtn,
@@ -1255,60 +1371,12 @@ export default function Home() {
               background: "#fff0fa",
               color: "#b86fa5",
               border: "1px solid #b86fa5",
-              margin: "auto",
             }}
-            onClick={() => setShowGlobalNotif(true)}
+            onClick={forceSubscribeToPush}
           >
-            Notifications
+            Accepter les notifications
           </button>
-        ) : (
-          <div
-            style={{
-              display: "inline-block",
-              background: "#fff8fc",
-              border: "1px solid #ffd6ef",
-              borderRadius: 12,
-              padding: 18,
-              minWidth: 260,
-            }}
-          >
-            <div style={{ marginBottom: 8 }}>
-              <input
-                type="text"
-                placeholder="Titre"
-                value={globalNotifTitle}
-                onChange={(e) => setGlobalNotifTitle(e.target.value)}
-                style={{ ...inputStyle, width: "100%", marginBottom: 8 }}
-              />
-              <textarea
-                placeholder="Message"
-                value={globalNotifMsg}
-                onChange={(e) => setGlobalNotifMsg(e.target.value)}
-                style={{ ...inputStyle, width: "100%", minHeight: 40 }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button
-                style={{
-                  ...bigBtn,
-                  fontSize: 15,
-                  background: "#fff",
-                  color: "#b86fa5",
-                  border: "1px solid #b86fa5",
-                }}
-                onClick={() => setShowGlobalNotif(false)}
-              >
-                Annuler
-              </button>
-              <button
-                style={{ ...bigBtn, fontSize: 15 }}
-                onClick={sendGlobalNotification}
-              >
-                Envoyer
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
