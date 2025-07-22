@@ -182,6 +182,8 @@ export default function Home() {
   const [globalNotifTitle, setGlobalNotifTitle] = useState("");
   const [globalNotifMsg, setGlobalNotifMsg] = useState("");
   const [userName, setUserName] = useState("");
+  const [showSubJson, setShowSubJson] = useState(false);
+  const [subJson, setSubJson] = useState("");
 
   // Fonction utilitaire pour afficher une notification
   function showToast(message, color = "#d0488f") {
@@ -612,8 +614,80 @@ export default function Home() {
     }
   }
 
+  async function showMySubscription() {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      showToast("Notifications push non supportées", "red");
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        showToast("Aucune subscription trouvée", "red");
+        setSubJson("");
+        setShowSubJson(true);
+        return;
+      }
+      setSubJson(JSON.stringify(sub, null, 2));
+      setShowSubJson(true);
+    } catch (e) {
+      showToast("Erreur lors de la récupération", "red");
+      setSubJson("");
+      setShowSubJson(true);
+    }
+  }
+
+  // Mobile-first UI styles
+  const mobileMainBg = {
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%)",
+    padding: 0,
+  };
+  const mobileCard = {
+    background: "#fff",
+    borderRadius: 18,
+    boxShadow: "0 2px 16px #ffd6ef33",
+    padding: 18,
+    margin: "18px 0",
+    width: "100%",
+    maxWidth: 420,
+    marginLeft: "auto",
+    marginRight: "auto",
+  };
+  const mobileBtn = {
+    background: "linear-gradient(90deg, #ffeef8 0%, #fff0fa 100%)",
+    color: "#d0488f",
+    border: "none",
+    borderRadius: 32,
+    fontSize: 18,
+    fontWeight: 700,
+    padding: "1rem 1.5rem",
+    margin: "0 0 12px 0",
+    width: "100%",
+    boxShadow: "0 2px 8px #ffd6ef22",
+    cursor: "pointer",
+    transition: "transform 0.1s, box-shadow 0.1s",
+  };
+  const mobileInput = {
+    padding: 14,
+    borderRadius: 8,
+    border: "1px solid #ffd6ef",
+    fontSize: 17,
+    marginBottom: 12,
+    background: "#fff8fc",
+    width: "100%",
+  };
+  const mobileTextarea = {
+    ...mobileInput,
+    minHeight: 80,
+    fontFamily: "monospace",
+    fontSize: 14,
+    resize: "vertical",
+  };
+
   return (
-    <div style={mainBg}>
+    <div style={mobileMainBg}>
       {toast && (
         <div
           style={{
@@ -658,18 +732,19 @@ export default function Home() {
       )}
       <main
         style={{
-          maxWidth: 420,
+          width: "100%",
+          maxWidth: 480,
           margin: "auto",
           padding: 0,
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ ...cardStyle, marginTop: 36, textAlign: "center" }}>
+        <div style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}>
           {userName && (
             <div
               style={{
                 fontWeight: 700,
-                fontSize: 26,
+                fontSize: 24,
                 color: "#b86fa5",
                 marginBottom: 8,
               }}
@@ -1408,6 +1483,26 @@ export default function Home() {
           >
             Copier ma subscription
           </button>
+          <button
+            style={{
+              ...bigBtn,
+              fontSize: 16,
+              background: "#fff0fa",
+              color: "#b86fa5",
+              border: "1px solid #b86fa5",
+            }}
+            onClick={showMySubscription}
+          >
+            Afficher ma subscription
+          </button>
+          {showSubJson && (
+            <textarea
+              style={mobileTextarea}
+              value={subJson}
+              readOnly
+              onFocus={(e) => e.target.select()}
+            />
+          )}
         </div>
       </div>
     </div>
