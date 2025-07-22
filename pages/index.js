@@ -657,12 +657,16 @@ export default function Home() {
   }
 
   async function handleSaveCitation() {
-    if (!citationInput.trim() || !citationId) return;
+    if (!citationInput.trim()) return;
     setCitationLoading(true);
-    await supabase
-      .from("citation")
-      .update({ text: citationInput, updated_at: new Date().toISOString() })
-      .eq("id", citationId);
+    await supabase.from("citation").upsert(
+      {
+        id: citationId,
+        text: citationInput,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: ["id"] }
+    );
     setEditCitation(false);
     setCitation(citationInput);
     setCitationLoading(false);
@@ -747,10 +751,10 @@ export default function Home() {
         });
       }
       const userId = localStorage.getItem("userId");
-      await fetch("/api/save-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: sub, userId }),
+      await supabase.from("subscriptions").upsert({
+        user_id: userId,
+        subscription: sub,
+        updated_at: new Date().toISOString(),
       });
       showToast("Notifications activées !", "#b86fa5");
     } catch (e) {
@@ -1630,7 +1634,7 @@ export default function Home() {
           boxSizing: "border-box",
         }}
       >
-        {showSubJson && (
+        {userId !== "alyssia" && showSubJson && (
           <div style={{ width: "100%", marginBottom: 16 }}>
             <textarea
               style={mobileTextarea}
@@ -1648,92 +1652,98 @@ export default function Home() {
             </button>
           </div>
         )}
-        <button
-          style={mobileBtn}
-          onMouseEnter={() => setBtnHover("acceptNotifs")}
-          onMouseLeave={() => setBtnHover("")}
-          onClick={forceSubscribeToPush}
-        >
-          Accepter les notifications
-        </button>
-        <button
-          style={mobileBtn}
-          onMouseEnter={() => setBtnHover("copySub")}
-          onMouseLeave={() => setBtnHover("")}
-          onClick={copyMySubscription}
-        >
-          Copier ma subscription
-        </button>
-        <button
-          style={mobileBtn}
-          onMouseEnter={() => setBtnHover("showSub")}
-          onMouseLeave={() => setBtnHover("")}
-          onClick={showMySubscription}
-        >
-          Afficher ma subscription
-        </button>
-        {!showGlobalNotif ? (
+        {!notifEnabled && (
           <button
             style={mobileBtn}
-            onMouseEnter={() => setBtnHover("showGlobalNotif")}
+            onMouseEnter={() => setBtnHover("acceptNotifs")}
             onMouseLeave={() => setBtnHover("")}
-            onClick={() => setShowGlobalNotif(true)}
+            onClick={forceSubscribeToPush}
           >
-            Notifications globales
+            Accepter les notifications
           </button>
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              background: "#fff8fc",
-              border: "1px solid #ffd6ef",
-              borderRadius: 12,
-              padding: 14,
-              minWidth: 260,
-              marginTop: 10,
-            }}
-          >
-            <div style={{ marginBottom: 8 }}>
-              <input
-                type="text"
-                placeholder="Titre"
-                value={globalNotifTitle}
-                onChange={(e) => setGlobalNotifTitle(e.target.value)}
-                style={{ ...mobileInput, marginBottom: 8 }}
-              />
-              <textarea
-                placeholder="Message"
-                value={globalNotifMsg}
-                onChange={(e) => setGlobalNotifMsg(e.target.value)}
-                style={{ ...mobileInput, minHeight: 40 }}
-              />
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                width: "100%",
-              }}
+        )}
+        {userId !== "alyssia" && (
+          <>
+            <button
+              style={mobileBtn}
+              onMouseEnter={() => setBtnHover("copySub")}
+              onMouseLeave={() => setBtnHover("")}
+              onClick={copyMySubscription}
             >
-              <button
-                style={{ ...closeBtn, marginBottom: 8 }}
-                onMouseEnter={() => setBtnHover("cancelGlobalNotif")}
-                onMouseLeave={() => setBtnHover("")}
-                onClick={() => setShowGlobalNotif(false)}
-              >
-                Annuler
-              </button>
+              Copier ma subscription
+            </button>
+            <button
+              style={mobileBtn}
+              onMouseEnter={() => setBtnHover("showSub")}
+              onMouseLeave={() => setBtnHover("")}
+              onClick={showMySubscription}
+            >
+              Afficher ma subscription
+            </button>
+            {!showGlobalNotif ? (
               <button
                 style={mobileBtn}
-                onMouseEnter={() => setBtnHover("sendGlobalNotif")}
+                onMouseEnter={() => setBtnHover("showGlobalNotif")}
                 onMouseLeave={() => setBtnHover("")}
-                onClick={sendGlobalNotification}
+                onClick={() => setShowGlobalNotif(true)}
               >
-                Envoyer
+                Notifications globales
               </button>
-            </div>
-          </div>
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  background: "#fff8fc",
+                  border: "1px solid #ffd6ef",
+                  borderRadius: 12,
+                  padding: 14,
+                  minWidth: 260,
+                  marginTop: 10,
+                }}
+              >
+                <div style={{ marginBottom: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Titre"
+                    value={globalNotifTitle}
+                    onChange={(e) => setGlobalNotifTitle(e.target.value)}
+                    style={{ ...mobileInput, marginBottom: 8 }}
+                  />
+                  <textarea
+                    placeholder="Message"
+                    value={globalNotifMsg}
+                    onChange={(e) => setGlobalNotifMsg(e.target.value)}
+                    style={{ ...mobileInput, minHeight: 40 }}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    width: "100%",
+                  }}
+                >
+                  <button
+                    style={{ ...closeBtn, marginBottom: 8 }}
+                    onMouseEnter={() => setBtnHover("cancelGlobalNotif")}
+                    onMouseLeave={() => setBtnHover("")}
+                    onClick={() => setShowGlobalNotif(false)}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    style={mobileBtn}
+                    onMouseEnter={() => setBtnHover("sendGlobalNotif")}
+                    onMouseLeave={() => setBtnHover("")}
+                    onClick={sendGlobalNotification}
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
         {/* Citation en bas, modifiable uniquement par Victor */}
         <div
