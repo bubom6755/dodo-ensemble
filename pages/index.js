@@ -592,6 +592,26 @@ export default function Home() {
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
   }
 
+  async function copyMySubscription() {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      showToast("Notifications push non supportées", "red");
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        showToast("Aucune subscription trouvée", "red");
+        return;
+      }
+      await navigator.clipboard.writeText(JSON.stringify(sub));
+      showToast("Subscription copiée dans le presse-papier !", "#b86fa5");
+    } catch (e) {
+      showToast("Erreur lors de la copie", "red");
+    }
+  }
+
   return (
     <div style={mainBg}>
       {toast && (
@@ -1375,6 +1395,18 @@ export default function Home() {
             onClick={forceSubscribeToPush}
           >
             Accepter les notifications
+          </button>
+          <button
+            style={{
+              ...bigBtn,
+              fontSize: 16,
+              background: "#fff0fa",
+              color: "#b86fa5",
+              border: "1px solid #b86fa5",
+            }}
+            onClick={copyMySubscription}
+          >
+            Copier ma subscription
           </button>
         </div>
       </div>
