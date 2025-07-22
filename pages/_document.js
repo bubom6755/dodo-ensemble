@@ -11,6 +11,14 @@ export default function Document() {
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </Head>
       <body>
+        <style>{`
+          html, body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%);
+            margin: 0;
+            padding: 0;
+          }
+        `}</style>
         <Main />
         <NextScript />
       </body>

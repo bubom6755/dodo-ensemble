@@ -2,73 +2,160 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 
-const mainBg = {
+// ---------------------------------------------------
+// START OF UPDATED STYLE CONSTANTS
+// ---------------------------------------------------
+
+const mobileMainBg = {
   minHeight: "100vh",
-  background: "#fff",
-  padding: 0,
+  background: "linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)", // Lighter pinks
+  padding: "0 8px",
+  boxSizing: "border-box",
+  maxWidth: 420,
+  width: "100%",
+  margin: "0 auto",
 };
 
-const cardStyle = {
-  background: "#f8f8fa",
-  borderRadius: 18,
-  boxShadow: "0 2px 16px #e5e5e555",
-  padding: 28,
-  marginBottom: 28,
-  marginTop: 0,
+const mobileCard = {
+  background: "#ffffff", // Pure white for a crisp look
+  borderRadius: 20, // Slightly more rounded
+  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // A softer, more spread-out shadow
+  padding: 24, // Slightly more padding for breathability
+  margin: "24px 0", // More margin top/bottom
+  width: "100%",
+  maxWidth: 480,
+  marginLeft: "auto",
+  marginRight: "auto",
+  boxSizing: "border-box",
+  transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out", // Smooth transition for hover
+};
+
+const mobileCardHover = {
+  transform: "translateY(-4px)",
+  boxShadow: "0 10px 30px rgba(255, 200, 220, 0.6)",
 };
 
 const bigBtn = {
-  background: "linear-gradient(90deg, #ffeef8 0%, #f8f8fa 100%)",
-  color: "#d0488f",
+  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)", // Stronger, vibrant pink
+  color: "#fff", // White text for contrast
   border: "none",
-  borderRadius: 32,
-  fontSize: 22,
+  borderRadius: 36, // More rounded, pill-like
+  fontSize: 20, // Slightly larger font
   fontWeight: 700,
-  padding: "1.1rem 2.5rem",
+  padding: "1.2rem 2.8rem", // More padding
   margin: "0 18px 0 0",
-  boxShadow: "0 2px 8px #ffd6ef22",
+  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)", // Deeper, more noticeable shadow
   cursor: "pointer",
-  transition: "transform 0.1s, box-shadow 0.1s",
+  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out", // Smoother transition
+  outline: "none",
+  position: "relative",
+  overflow: "hidden",
 };
 
 const bigBtnHover = {
-  transform: "scale(1.05)",
-  boxShadow: "0 4px 16px #ffd6ef44",
+  transform: "translateY(-2px) scale(1.02)", // Lift and slightly scale
+  boxShadow: "0 8px 20px rgba(255, 64, 129, 0.6)", // More pronounced shadow
+};
+
+const mobileBtn = {
+  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)",
+  color: "#fff",
+  border: "none",
+  borderRadius: 36,
+  fontSize: 18,
+  fontWeight: 700,
+  padding: "1.1rem 0",
+  margin: "0 0 16px 0",
+  width: "100%",
+  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)",
+  cursor: "pointer",
+  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out",
+  outline: "none",
+};
+
+const mobileBtnHover = {
+  transform: "translateY(-2px) scale(1.01)",
+  boxShadow: "0 8px 20px rgba(255, 64, 129, 0.6)",
+};
+
+const mobileBtnActive = {
+  transform: "scale(0.98)",
+  boxShadow: "0 2px 8px rgba(255, 64, 129, 0.3)",
+};
+
+const closeBtn = {
+  ...mobileBtn,
+  background: "#fff",
+  color: "#ff4081", // Use the primary pink for border/text
+  border: "1.5px solid #ff80ab", // Thicker, more visible border
+  boxShadow: "none", // No shadow
+  fontSize: 16,
+  padding: "0.8rem 0",
+};
+
+const closeBtnHover = {
+  background: "#fce4ec", // Light pink on hover
+  color: "#d0488f",
+  transform: "none", // Remove lift effect for close buttons
+  boxShadow: "0 2px 8px rgba(255, 200, 220, 0.4)", // Subtle shadow on hover
+};
+
+const closeBtnActive = {
+  background: "#f8bbd0",
 };
 
 const sectionTitle = {
-  color: "#b86fa5",
+  color: "#d0488f", // Use a more vibrant pink for titles
   fontWeight: 700,
-  fontSize: 22,
-  marginBottom: 10,
+  fontSize: 24, // Slightly larger
+  marginBottom: 12,
   marginTop: 0,
+  textAlign: "center",
 };
 
-const inputStyle = {
-  padding: 12,
-  borderRadius: 8,
-  border: "1px solid #eee",
+const mobileInput = {
+  padding: 16,
+  borderRadius: 10, // Slightly more rounded
+  border: "1px solid #ffcccb", // Softer, light pink border
+  fontSize: 18,
+  marginBottom: 16, // More spacing
+  background: "#fff8fb", // Very light pink background
+  width: "100%",
+  boxSizing: "border-box",
+  color: "#4a4a4a", // Darker text for readability
+  transition: "border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+};
+
+const mobileTextarea = {
+  ...mobileInput,
+  minHeight: 100, // Make it a bit shorter by default, still resizable
+  maxHeight: 250,
+  fontFamily: "inherit",
   fontSize: 16,
-  marginRight: 10,
-  background: "#fff",
+  resize: "vertical",
+  marginBottom: 16,
+  color: "#4a4a4a",
 };
 
 const labelStyle = {
   fontWeight: 600,
-  color: "#b86fa5",
+  color: "#d0488f", // Consistent label color
   marginRight: 8,
+  display: "block", // Make labels block level for better stacking with inputs
+  marginBottom: 6,
+  fontSize: 16,
 };
 
 const answerIcon = {
-  Oui: "💗",
-  Non: "💔",
+  Oui: "😊", // More sakura-themed emojis
+  Non: "😫", // A wilted rose for contrast
 };
 
 const calendarStyle = {
-  background: "#fff",
-  borderRadius: 16,
-  boxShadow: "0 2px 12px #e5e5e533",
-  padding: 20,
+  background: "#ffffff",
+  borderRadius: 20, // Consistent rounded corners
+  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // Consistent shadow
+  padding: 28, // More padding
   margin: "32px auto 0 auto",
   maxWidth: 420,
 };
@@ -76,7 +163,10 @@ const calendarHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 12,
+  marginBottom: 20, // More space
+  color: "#ff4081", // Stronger color for month/year
+  fontWeight: 700,
+  fontSize: 22,
 };
 const calendarGrid = {
   display: "grid",
@@ -84,59 +174,94 @@ const calendarGrid = {
   gap: 4,
 };
 const dayCell = {
-  minHeight: 48,
-  borderRadius: 8,
-  background: "#f8f8fa",
+  minHeight: 52, // Taller cells
+  borderRadius: 10, // Rounded cells
+  background: "#fefefe", // Very light background
   textAlign: "center",
-  fontSize: 16,
+  fontSize: 17,
   color: "#888",
   cursor: "pointer",
   position: "relative",
-  transition: "background 0.15s",
+  transition:
+    "background 0.2s ease-in-out, transform 0.1s ease-out, box-shadow 0.1s ease-out",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "column",
 };
 const dayCellEvent = {
   ...dayCell,
-  background: "#ffeef8",
+  background: "#ffebee", // Softer event background
   color: "#d0488f",
   fontWeight: 700,
-  border: "1.5px solid #ffd6ef",
+  border: "1.5px solid #ffcdd2", // Softer border
 };
 const todayCell = {
   ...dayCell,
-  border: "2px solid #b86fa5",
-  background: "#fff0fa",
+  border: "2px solid #ff80ab", // Stronger border for today
+  background: "#fff0fa", // Light pink for today
+  fontWeight: 700,
+  color: "#d0488f",
 };
 const eventDot = {
   width: 8,
   height: 8,
   borderRadius: 4,
-  background: "#d0488f",
+  background: "#ff4081", // Vibrant dot for event
   position: "absolute",
   left: "50%",
-  bottom: 6,
+  bottom: 8, // More space from bottom
   transform: "translateX(-50%)",
 };
+
 const modalOverlay = {
   position: "fixed",
   top: 0,
   left: 0,
   width: "100vw",
   height: "100vh",
-  background: "rgba(0,0,0,0.18)",
+  background: "rgba(0,0,0,0.25)", // Slightly darker overlay
   zIndex: 1000,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  backdropFilter: "blur(4px)", // Subtle blur for the background
+  // Add animation via CSS module or global CSS if needed
+  // animation: "fadeIn 0.3s ease-out",
 };
 const modalBox = {
-  background: "#fff",
-  borderRadius: 16,
-  boxShadow: "0 4px 32px #b86fa555",
-  padding: 32,
-  minWidth: 320,
-  maxWidth: 380,
+  background: "#ffffff",
+  borderRadius: 20,
+  boxShadow: "0 10px 40px rgba(184, 111, 165, 0.3)", // Deeper, more spread shadow
+  padding: 36, // More padding
+  minWidth: 340,
+  maxWidth: 400,
   zIndex: 1001,
+  // Add animation via CSS module or global CSS if needed
+  // animation: "slideInFromTop 0.3s ease-out",
 };
+
+const toastStyle = {
+  position: "fixed",
+  top: 24,
+  left: "50%",
+  transform: "translateX(-50%)",
+  background: "#ffebee", // Light pink background for toast
+  color: "#d0488f", // Default color for text
+  border: `1.5px solid #ffcdd2`, // Softer border
+  borderRadius: 12,
+  padding: "12px 32px",
+  fontWeight: 600,
+  fontSize: 17,
+  boxShadow: "0 4px 16px rgba(255, 200, 220, 0.4)",
+  zIndex: 2000,
+  // Animations would need to be handled via global CSS or a library that supports keyframes in JS.
+  // animation: "slideInTop 0.3s ease-out, fadeOut 0.3s ease-out 2.7s forwards",
+};
+
+// ---------------------------------------------------
+// END OF UPDATED STYLE CONSTANTS
+// ---------------------------------------------------
 
 // Ajout d'une constante pour la liste des utilisateurs (fixe)
 const ALL_USERS = ["victor", "alyssia"];
@@ -147,8 +272,8 @@ export default function Home() {
   const [answer, setAnswer] = useState(null);
   const [reason, setReason] = useState("");
   const [showReasonInput, setShowReasonInput] = useState(false);
-  const [todayResponse, setTodayResponse] = useState(null);
-  const [btnHover, setBtnHover] = useState("");
+  const [todayResponse, setTodayResponse] = useState(null); // This state seems unused, consider removing if not needed.
+  const [btnHover, setBtnHover] = useState(""); // For bigBtn hover effects
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -166,18 +291,12 @@ export default function Home() {
     location: "",
   });
   const [eventFormError, setEventFormError] = useState("");
-  // Ajoute un state pour stocker toutes les réponses du jour
   const [allTodayResponses, setAllTodayResponses] = useState([]);
-  // Ajoute un state pour stocker les réponses aux événements
   const [eventResponses, setEventResponses] = useState([]);
-  // Ajoute le champ comment dans la gestion des réponses aux événements
   const [eventComment, setEventComment] = useState("");
-  // Ajoute un state pour la notification
   const [toast, setToast] = useState(null);
-  // Ajoute un state pour suivre le nombre de relances par event et user
-  const [reminders, setReminders] = useState({}); // { [eventId_userId]: count }
+  const [reminders, setReminders] = useState({});
   const [reminderMsg, setReminderMsg] = useState("");
-  // Ajoute le formulaire de notification globale en bas de la page
   const [showGlobalNotif, setShowGlobalNotif] = useState(false);
   const [globalNotifTitle, setGlobalNotifTitle] = useState("");
   const [globalNotifMsg, setGlobalNotifMsg] = useState("");
@@ -255,17 +374,24 @@ export default function Home() {
       await saveResponse(ans, "");
       setShowReasonInput(false);
       fetchTodayResponses();
-      // Notif push à l'autre utilisateur si pas encore répondu
-      const otherUser = ["victor", "alyssia"].find((u) => u !== userId);
+      // Notif push à l'autre utilisateur selon son état de réponse
+      const otherUser = ALL_USERS.find((u) => u !== userId);
       const otherHasAnswered = allTodayResponses.find(
         (r) => r.user_id === otherUser
       );
+      const senderName = displayUserName(userId);
       if (!otherHasAnswered) {
+        // Option 1 : l'autre n'a pas encore répondu
         sendNativePushNotification({
           title: `Réponse du jour !`,
-          message: `${displayUserName(userId)} a répondu "${
-            ans ? "Oui" : "Non"
-          }" à la question du jour.`,
+          message: `${senderName} a répondu à la question du jour. À ton tour de répondre !`,
+          targetUserId: otherUser,
+        });
+      } else {
+        // Option 2 : l'autre a déjà répondu
+        sendNativePushNotification({
+          title: `Réponse du jour !`,
+          message: `${senderName} a répondu à la question du jour. Viens voir la réponse !`,
           targetUserId: otherUser,
         });
       }
@@ -380,14 +506,22 @@ export default function Home() {
     return days;
   }
   function getWeekdayShort(d) {
+    // This function is defined but not used.
     return ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d];
+  }
+  // Fonction utilitaire pour formater une date locale en YYYY-MM-DD (évite le bug UTC)
+  function toLocalDateString(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   }
   const monthDays = getMonthDays(
     calendarMonth.getFullYear(),
     calendarMonth.getMonth()
   );
   const firstWeekday = (calendarMonth.getDay() + 6) % 7; // Lundi=0
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toLocalDateString(new Date());
   // Map des événements par date
   const eventsByDate = {};
   for (const ev of events) {
@@ -485,7 +619,7 @@ export default function Home() {
     fetchEventResponses(modalEvent.id);
     showToast("Réponse enregistrée !");
     // Envoie une notification à l'autre utilisateur
-    const otherUser = ["victor", "alyssia"].find((u) => u !== userId);
+    const otherUser = ALL_USERS.find((u) => u !== userId);
     sendNativePushNotification({
       title: `Nouvelle réponse à l'événement`,
       message: `${displayUserName(
@@ -504,7 +638,6 @@ export default function Home() {
     showToast("Événement supprimé.", "#b86fa5");
   }
 
-  // Supprime tout le code OneSignal (useEffect, sendOneSignalNotification, etc)
   // Ajoute la fonction d'envoi de notification push native via l'API Next.js
   async function sendNativePushNotification({ title, message, targetUserId }) {
     try {
@@ -638,108 +771,55 @@ export default function Home() {
     }
   }
 
-  // Styles mobile-first améliorés
-  const mobileMainBg = {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%)",
-    padding: "0 8px",
-    boxSizing: "border-box",
-  };
-  const mobileCard = {
-    background: "#fff",
-    borderRadius: 18,
-    boxShadow: "0 2px 16px #ffd6ef33",
-    padding: 20,
-    margin: "18px 0",
-    width: "100%",
-    maxWidth: 480,
-    marginLeft: "auto",
-    marginRight: "auto",
-    boxSizing: "border-box",
-  };
-  const mobileBtn = {
-    background: "linear-gradient(90deg, #ffeef8 0%, #fff0fa 100%)",
-    color: "#d0488f",
-    border: "none",
-    borderRadius: 32,
-    fontSize: 19,
-    fontWeight: 700,
-    padding: "1.1rem 0",
-    margin: "0 0 14px 0",
-    width: "100%",
-    boxShadow: "0 2px 8px #ffd6ef22",
-    cursor: "pointer",
-    transition: "transform 0.1s, box-shadow 0.1s",
-    outline: "none",
-  };
-  const mobileInput = {
-    padding: 16,
-    borderRadius: 8,
-    border: "1px solid #ffd6ef",
-    fontSize: 18,
-    marginBottom: 14,
-    background: "#fff8fc",
-    width: "100%",
-    boxSizing: "border-box",
-  };
-  const mobileTextarea = {
-    ...mobileInput,
-    minHeight: 120,
-    maxHeight: 200,
-    fontFamily: "monospace",
-    fontSize: 15,
-    resize: "vertical",
-    marginBottom: 10,
-    color: "#b86fa5",
-  };
-  const closeBtn = {
-    ...mobileBtn,
-    background: "#fff",
-    color: "#b86fa5",
-    border: "1px solid #b86fa5",
-    margin: 0,
-    fontSize: 16,
-    padding: "0.7rem 0",
-  };
+  // Fonction utilitaire pour formater la date en français
+  function formatDateFr(dateStr) {
+    const date = new Date(dateStr);
+    return date
+      .toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+      .replace(/^(.)/, (c) => c.toUpperCase());
+  }
 
   return (
     <div style={mobileMainBg}>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            top: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#fff0fa",
-            color: toast.color,
-            border: `1.5px solid ${toast.color}`,
-            borderRadius: 12,
-            padding: "12px 32px",
-            fontWeight: 600,
-            fontSize: 17,
-            boxShadow: "0 2px 16px #ffd6ef55",
-            zIndex: 2000,
-            transition: "opacity 0.3s",
-          }}
-        >
-          {toast.message}
-        </div>
-      )}
+      {/* Global CSS for animations:
+        <style jsx global>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideInFromTop {
+            from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+          }
+          @keyframes slideInTop {
+            from { transform: translateX(-50%) translateY(-30px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+          }
+          @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+          }
+        `}</style>
+      */}
+      {toast && <div style={toastStyle}>{toast.message}</div>}
       {notifEnabled && (
         <div
           style={{
             position: "fixed",
             top: 16,
             right: 16,
-            background: "#fff0fa",
+            background: "#ffebee",
             color: "#d0488f",
-            border: "1.5px solid #d0488f",
+            border: "1.5px solid #ffcdd2",
             borderRadius: 12,
             padding: "10px 22px",
             fontWeight: 600,
             fontSize: 15,
-            boxShadow: "0 2px 16px #ffd6ef55",
+            boxShadow: "0 2px 16px rgba(255, 200, 220, 0.4)",
             zIndex: 2000,
           }}
         >
@@ -757,31 +837,27 @@ export default function Home() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-start",
+          boxSizing: "border-box",
+          paddingBottom: 80,
         }}
       >
-        <div style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}>
-          {userName && (
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 24,
-                color: "#b86fa5",
-                marginBottom: 8,
-              }}
-            >
-              Bonjour {userName} !
-            </div>
-          )}
+        <div
+          style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}
+          onMouseEnter={() => setBtnHover("card1")} // Using btnHover state for card hover
+          onMouseLeave={() => setBtnHover("")}
+        >
           <h1
-            style={{ color: "#b86fa5", fontSize: 28, margin: "18px 0 24px 0" }}
+            style={{ color: "#ff4081", fontSize: 28, margin: "18px 0 24px 0" }}
           >
-            Dors-tu avec moi ce soir ?
+            Tu dors avec moi ce soir ?
           </h1>
           <div style={{ fontSize: 16, color: "#888", marginBottom: 18 }}>
-            <span style={{ color: "#b86fa5" }}>{today}</span>
+            <span style={{ color: "#ff80ab" }}>
+              {formatDateFr(toLocalDateString(new Date()))}
+            </span>
           </div>
           {loading ? (
-            <div style={{ color: "#b86fa5", fontSize: 20, margin: "24px 0" }}>
+            <div style={{ color: "#ff80ab", fontSize: 20, margin: "24px 0" }}>
               Chargement...
             </div>
           ) : (
@@ -797,7 +873,14 @@ export default function Home() {
                 justifyContent: "center",
               }}
             >
-              {mainIcon && <span style={{ fontSize: 38 }}>{mainIcon}</span>}
+              {mainIcon && (
+                <span
+                  style={{ fontSize: 38, marginBottom: 20 }}
+                  className={mainIcon === "⏳" ? "hourglass-animated" : ""}
+                >
+                  {mainIcon}
+                </span>
+              )}
               <span style={{ marginTop: 8 }}>{mainMessage}</span>
             </div>
           )}
@@ -818,7 +901,7 @@ export default function Home() {
                 onMouseLeave={() => setBtnHover("")}
                 onClick={() => handleAnswer(true)}
               >
-                Oui 💗
+                Oui {answerIcon["Oui"]}
               </button>
               <button
                 style={
@@ -828,7 +911,7 @@ export default function Home() {
                 onMouseLeave={() => setBtnHover("")}
                 onClick={() => handleAnswer(false)}
               >
-                Non 💔
+                Non {answerIcon["Non"]}
               </button>
             </div>
           )}
@@ -839,7 +922,13 @@ export default function Home() {
                 type="text"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                style={{ ...inputStyle, width: "60%" }}
+                style={{
+                  ...mobileInput,
+                  width: "calc(100% - 120px)",
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                  marginBottom: 0,
+                }}
                 placeholder="Expliquez en quelques mots..."
               />
               <button
@@ -848,6 +937,8 @@ export default function Home() {
                   fontSize: 17,
                   padding: "0.6rem 1.5rem",
                   marginLeft: 10,
+                  verticalAlign: "middle",
+                  marginTop: 15,
                 }}
                 onClick={submitReason}
               >
@@ -861,11 +952,13 @@ export default function Home() {
                 style={{
                   ...bigBtn,
                   background: "#fff",
-                  color: "#b86fa5",
-                  border: "1px solid #b86fa5",
+                  color: "#ff80ab",
+                  border: "1.5px solid #ff80ab",
                   boxShadow: "none",
                   fontSize: 18,
                 }}
+                onMouseEnter={() => setBtnHover("reset")}
+                onMouseLeave={() => setBtnHover("")}
                 onClick={resetToday}
               >
                 Remettre à zéro la réponse du jour
@@ -882,7 +975,13 @@ export default function Home() {
                 fontSize: 16,
                 padding: "0.3rem 1rem",
                 margin: 0,
+                background: "#fce4ec", // Lighter button for navigation
+                color: "#ff80ab",
+                boxShadow: "none",
+                border: "1px solid #ffcdd2",
               }}
+              onMouseEnter={() => setBtnHover("prevMonth")}
+              onMouseLeave={() => setBtnHover("")}
               onClick={() =>
                 setCalendarMonth(
                   new Date(
@@ -895,7 +994,7 @@ export default function Home() {
             >
               ◀
             </button>
-            <span style={{ fontWeight: 700, fontSize: 20, color: "#b86fa5" }}>
+            <span style={{ fontWeight: 700, fontSize: 20, color: "#ff4081" }}>
               {calendarMonth.toLocaleString("fr-FR", {
                 month: "long",
                 year: "numeric",
@@ -907,7 +1006,13 @@ export default function Home() {
                 fontSize: 16,
                 padding: "0.3rem 1rem",
                 margin: 0,
+                background: "#fce4ec",
+                color: "#ff80ab",
+                boxShadow: "none",
+                border: "1px solid #ffcdd2",
               }}
+              onMouseEnter={() => setBtnHover("nextMonth")}
+              onMouseLeave={() => setBtnHover("")}
               onClick={() =>
                 setCalendarMonth(
                   new Date(
@@ -925,7 +1030,7 @@ export default function Home() {
             {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
               <div
                 key={d}
-                style={{ fontWeight: 600, color: "#b86fa5", padding: 4 }}
+                style={{ fontWeight: 600, color: "#ff80ab", padding: 4 }}
               >
                 {d}
               </div>
@@ -938,7 +1043,7 @@ export default function Home() {
               ))}
             {/* Jours du mois */}
             {monthDays.map((d) => {
-              const dateStr = d.toISOString().split("T")[0];
+              const dateStr = toLocalDateString(d);
               const isToday = dateStr === todayStr;
               const hasEvent = !!eventsByDate[dateStr];
               return (
@@ -957,6 +1062,28 @@ export default function Home() {
                       ? eventsByDate[dateStr].title
                       : "Ajouter un événement"
                   }
+                  onMouseEnter={(e) => {
+                    if (!isToday && !hasEvent) {
+                      e.currentTarget.style.background = "#fff0fa"; // Hover for non-event, non-today
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(255, 200, 220, 0.3)";
+                    } else if (hasEvent) {
+                      e.currentTarget.style.background = "#ffedf5"; // Hover for event
+                      e.currentTarget.style.transform = "scale(1.03)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isToday && !hasEvent) {
+                      e.currentTarget.style.background = dayCell.background;
+                      e.currentTarget.style.transform = "none";
+                      e.currentTarget.style.boxShadow = "none";
+                    } else if (hasEvent) {
+                      e.currentTarget.style.background =
+                        dayCellEvent.background;
+                      e.currentTarget.style.transform = "none";
+                    }
+                  }}
                 >
                   {d.getDate()}
                   {hasEvent && <div style={eventDot}></div>}
@@ -967,6 +1094,8 @@ export default function Home() {
           <div style={{ marginTop: 18, textAlign: "center" }}>
             <button
               style={{ ...bigBtn, fontSize: 16, padding: "0.6rem 1.5rem" }}
+              onMouseEnter={() => setBtnHover("addEvent")}
+              onMouseLeave={() => setBtnHover("")}
               onClick={() => openEventForm(todayStr)}
             >
               Ajouter un événement
@@ -982,7 +1111,7 @@ export default function Home() {
                 maxWidth: 420,
                 padding: 0,
                 overflow: "hidden",
-                boxShadow: "0 8px 40px #b86fa555",
+                boxShadow: "0 8px 40px rgba(184, 111, 165, 0.5)",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1105,7 +1234,14 @@ export default function Home() {
                         padding: "6px 14px",
                         fontWeight: 600,
                         cursor: "pointer",
+                        transition: "transform 0.1s",
                       }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform = "scale(1.05)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = "none")
+                      }
                     >
                       Supprimer
                     </button>
@@ -1121,7 +1257,7 @@ export default function Home() {
                     alignItems: "center",
                   }}
                 >
-                  {["victor", "alyssia"].map((uid) => {
+                  {ALL_USERS.map((uid) => {
                     const resp = eventResponses.find((r) => r.user_id === uid);
                     return (
                       <div
@@ -1141,7 +1277,7 @@ export default function Home() {
                         {resp ? (
                           <>
                             <span style={{ fontSize: 18, marginLeft: 4 }}>
-                              {resp.answer === "Oui" ? "💗 Oui" : "💔 Non"}
+                              {resp.answer === "Oui" ? "🌸 Oui" : "🥀 Non"}
                             </span>
                             {resp.comment && (
                               <span
@@ -1183,15 +1319,22 @@ export default function Home() {
                             (r) => r.user_id === userId && r.answer === "Oui"
                           )
                             ? "#ffeef8"
-                            : undefined,
+                            : bigBtn.background, // Use original background if not selected
                           color: eventResponses.find(
                             (r) => r.user_id === userId && r.answer === "Oui"
                           )
                             ? "#d0488f"
-                            : undefined,
+                            : bigBtn.color,
                         }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.transform =
+                            bigBtnHover.transform)
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.transform = "none")
+                        }
                       >
-                        Oui 💗
+                        Oui 🌸
                       </button>
                       <button
                         onClick={() => handleEventAnswer("Non")}
@@ -1202,15 +1345,22 @@ export default function Home() {
                             (r) => r.user_id === userId && r.answer === "Non"
                           )
                             ? "#ffeef8"
-                            : undefined,
+                            : bigBtn.background, // Use original background if not selected
                           color: eventResponses.find(
                             (r) => r.user_id === userId && r.answer === "Non"
                           )
                             ? "#d0488f"
-                            : undefined,
+                            : bigBtn.color,
                         }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.transform =
+                            bigBtnHover.transform)
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.transform = "none")
+                        }
                       >
-                        Non 💔
+                        Non 🥀
                       </button>
                     </div>
                     <textarea
@@ -1218,7 +1368,7 @@ export default function Home() {
                       value={eventComment}
                       onChange={(e) => setEventComment(e.target.value)}
                       style={{
-                        ...inputStyle,
+                        ...mobileInput,
                         width: "100%",
                         minHeight: 40,
                         marginBottom: 8,
@@ -1236,14 +1386,19 @@ export default function Home() {
                         fontSize: 15,
                         padding: "0.5rem 1.2rem",
                       }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform =
+                          bigBtnHover.transform)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = "none")
+                      }
                     >
                       Enregistrer
                     </button>
                     {/* Bouton Relancer */}
                     {(() => {
-                      const otherUser = ["victor", "alyssia"].find(
-                        (u) => u !== userId
-                      );
+                      const otherUser = ALL_USERS.find((u) => u !== userId);
                       const otherHasAnswered = eventResponses.find(
                         (r) => r.user_id === otherUser
                       );
@@ -1258,7 +1413,7 @@ export default function Home() {
                               value={reminderMsg}
                               onChange={(e) => setReminderMsg(e.target.value)}
                               style={{
-                                ...inputStyle,
+                                ...mobileInput,
                                 width: "100%",
                                 minHeight: 32,
                                 marginBottom: 6,
@@ -1297,6 +1452,15 @@ export default function Home() {
                                     : "pointer",
                               }}
                               disabled={reminderCount >= maxReminders}
+                              onMouseEnter={(e) => {
+                                if (reminderCount < maxReminders) {
+                                  e.currentTarget.style.transform =
+                                    bigBtnHover.transform;
+                                }
+                              }}
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.transform = "none")
+                              }
                             >
                               Relancer {displayUserName(otherUser)} (
                               {maxReminders - reminderCount} restant
@@ -1321,7 +1485,7 @@ export default function Home() {
               onClick={(e) => e.stopPropagation()}
               onSubmit={submitEventForm}
             >
-              <h2 style={{ color: "#b86fa5", fontSize: 20, marginBottom: 12 }}>
+              <h2 style={{ color: "#ff4081", fontSize: 20, marginBottom: 16 }}>
                 Nouvel événement
               </h2>
               <div style={{ marginBottom: 10 }}>
@@ -1331,7 +1495,7 @@ export default function Home() {
                   name="date"
                   value={eventForm.date}
                   onChange={handleEventFormChange}
-                  style={inputStyle}
+                  style={mobileInput}
                   required
                 />
               </div>
@@ -1342,7 +1506,7 @@ export default function Home() {
                   name="title"
                   value={eventForm.title}
                   onChange={handleEventFormChange}
-                  style={inputStyle}
+                  style={mobileInput}
                   required
                 />
               </div>
@@ -1353,7 +1517,7 @@ export default function Home() {
                   name="time"
                   value={eventForm.time}
                   onChange={handleEventFormChange}
-                  style={inputStyle}
+                  style={mobileInput}
                 />
               </div>
               <div style={{ marginBottom: 10 }}>
@@ -1363,7 +1527,7 @@ export default function Home() {
                   name="location"
                   value={eventForm.location}
                   onChange={handleEventFormChange}
-                  style={inputStyle}
+                  style={mobileInput}
                 />
               </div>
               <div style={{ marginBottom: 10 }}>
@@ -1372,11 +1536,11 @@ export default function Home() {
                   name="description"
                   value={eventForm.description}
                   onChange={handleEventFormChange}
-                  style={{ ...inputStyle, minHeight: 60, width: "100%" }}
+                  style={{ ...mobileInput, minHeight: 60, width: "100%" }}
                 />
               </div>
               {eventFormError && (
-                <div style={{ color: "red", marginBottom: 8 }}>
+                <div style={{ color: "red", marginBottom: 12 }}>
                   {eventFormError}
                 </div>
               )}
@@ -1384,19 +1548,21 @@ export default function Home() {
                 <button
                   type="button"
                   style={{
-                    ...bigBtn,
-                    background: "#fff",
-                    color: "#b86fa5",
-                    border: "1px solid #b86fa5",
-                    boxShadow: "none",
-                    fontSize: 16,
+                    ...closeBtn, // Use the new closeBtn style
                     marginRight: 10,
                   }}
+                  onMouseEnter={() => setBtnHover("cancelEvent")}
+                  onMouseLeave={() => setBtnHover("")}
                   onClick={closeEventForm}
                 >
                   Annuler
                 </button>
-                <button type="submit" style={{ ...bigBtn, fontSize: 16 }}>
+                <button
+                  type="submit"
+                  style={{ ...bigBtn, fontSize: 16 }}
+                  onMouseEnter={() => setBtnHover("submitEvent")}
+                  onMouseLeave={() => setBtnHover("")}
+                >
                   Enregistrer
                 </button>
               </div>
@@ -1408,7 +1574,7 @@ export default function Home() {
       <div
         style={{
           width: "100%",
-          maxWidth: 480,
+          maxWidth: 420,
           margin: "0 auto",
           marginTop: 80,
           marginBottom: 24,
@@ -1418,8 +1584,9 @@ export default function Home() {
           gap: 0,
           background: "rgba(255,255,255,0.95)",
           borderRadius: 18,
-          boxShadow: "0 2px 16px #ffd6ef33",
+          boxShadow: "0 2px 16px rgba(255, 200, 220, 0.3)",
           padding: 18,
+          boxSizing: "border-box",
         }}
       >
         {showSubJson && (
@@ -1430,23 +1597,48 @@ export default function Home() {
               readOnly
               onFocus={(e) => e.target.select()}
             />
-            <button style={closeBtn} onClick={() => setShowSubJson(false)}>
+            <button
+              style={closeBtn}
+              onMouseEnter={() => setBtnHover("closeJson")}
+              onMouseLeave={() => setBtnHover("")}
+              onClick={() => setShowSubJson(false)}
+            >
               Fermer
             </button>
           </div>
         )}
-        <button style={mobileBtn} onClick={forceSubscribeToPush}>
+        <button
+          style={mobileBtn}
+          onMouseEnter={() => setBtnHover("acceptNotifs")}
+          onMouseLeave={() => setBtnHover("")}
+          onClick={forceSubscribeToPush}
+        >
           Accepter les notifications
         </button>
-        <button style={mobileBtn} onClick={copyMySubscription}>
+        <button
+          style={mobileBtn}
+          onMouseEnter={() => setBtnHover("copySub")}
+          onMouseLeave={() => setBtnHover("")}
+          onClick={copyMySubscription}
+        >
           Copier ma subscription
         </button>
-        <button style={mobileBtn} onClick={showMySubscription}>
+        <button
+          style={mobileBtn}
+          onMouseEnter={() => setBtnHover("showSub")}
+          onMouseLeave={() => setBtnHover("")}
+          onClick={showMySubscription}
+        >
           Afficher ma subscription
         </button>
         {!showGlobalNotif ? (
-          <button style={mobileBtn} onClick={() => setShowGlobalNotif(true)}>
-            Notifications
+          <button
+            style={mobileBtn}
+            onMouseEnter={() => setBtnHover("showGlobalNotif")}
+            onMouseLeave={() => setBtnHover("")}
+            onClick={() => setShowGlobalNotif(true)}
+          >
+            Notifications globales
           </button>
         ) : (
           <div
@@ -1485,17 +1677,51 @@ export default function Home() {
             >
               <button
                 style={{ ...closeBtn, marginBottom: 8 }}
+                onMouseEnter={() => setBtnHover("cancelGlobalNotif")}
+                onMouseLeave={() => setBtnHover("")}
                 onClick={() => setShowGlobalNotif(false)}
               >
                 Annuler
               </button>
-              <button style={mobileBtn} onClick={sendGlobalNotification}>
+              <button
+                style={mobileBtn}
+                onMouseEnter={() => setBtnHover("sendGlobalNotif")}
+                onMouseLeave={() => setBtnHover("")}
+                onClick={sendGlobalNotification}
+              >
                 Envoyer
               </button>
             </div>
           </div>
         )}
       </div>
+      <style jsx global>{`
+        @keyframes hourglass-flip {
+          0% {
+            transform: rotate(0deg);
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          40% {
+            transform: rotate(180deg);
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          50% {
+            transform: rotate(180deg);
+          }
+          90% {
+            transform: rotate(360deg);
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        .hourglass-animated {
+          display: inline-block;
+          animation: hourglass-flip 2.2s infinite;
+          transform-origin: 50% 60%;
+        }
+      `}</style>
     </div>
   );
 }
