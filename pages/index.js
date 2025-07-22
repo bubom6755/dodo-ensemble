@@ -753,6 +753,10 @@ export default function Home() {
           margin: "auto",
           padding: 0,
           fontFamily: "sans-serif",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start",
         }}
       >
         <div style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}>
@@ -1400,131 +1404,97 @@ export default function Home() {
           </div>
         )}
       </main>
+      {/* Zone d'actions en bas */}
       <div
         style={{
-          marginTop: 48,
-          textAlign: "center",
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          marginTop: 80,
+          marginBottom: 24,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 12,
+          gap: 0,
+          background: "rgba(255,255,255,0.95)",
+          borderRadius: 18,
+          boxShadow: "0 2px 16px #ffd6ef33",
+          padding: 18,
         }}
       >
-        <div style={{ display: "flex", gap: 16 }}>
-          {!showGlobalNotif ? (
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 16,
-                background: "#fff0fa",
-                color: "#b86fa5",
-                border: "1px solid #b86fa5",
-                margin: "auto",
-              }}
-              onClick={() => setShowGlobalNotif(true)}
-            >
-              Notifications
+        {showSubJson && (
+          <div style={{ width: "100%", marginBottom: 16 }}>
+            <textarea
+              style={mobileTextarea}
+              value={subJson}
+              readOnly
+              onFocus={(e) => e.target.select()}
+            />
+            <button style={closeBtn} onClick={() => setShowSubJson(false)}>
+              Fermer
             </button>
-          ) : (
+          </div>
+        )}
+        <button style={mobileBtn} onClick={forceSubscribeToPush}>
+          Accepter les notifications
+        </button>
+        <button style={mobileBtn} onClick={copyMySubscription}>
+          Copier ma subscription
+        </button>
+        <button style={mobileBtn} onClick={showMySubscription}>
+          Afficher ma subscription
+        </button>
+        {!showGlobalNotif ? (
+          <button style={mobileBtn} onClick={() => setShowGlobalNotif(true)}>
+            Notifications
+          </button>
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              background: "#fff8fc",
+              border: "1px solid #ffd6ef",
+              borderRadius: 12,
+              padding: 14,
+              minWidth: 260,
+              marginTop: 10,
+            }}
+          >
+            <div style={{ marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="Titre"
+                value={globalNotifTitle}
+                onChange={(e) => setGlobalNotifTitle(e.target.value)}
+                style={{ ...mobileInput, marginBottom: 8 }}
+              />
+              <textarea
+                placeholder="Message"
+                value={globalNotifMsg}
+                onChange={(e) => setGlobalNotifMsg(e.target.value)}
+                style={{ ...mobileInput, minHeight: 40 }}
+              />
+            </div>
             <div
               style={{
-                display: "inline-block",
-                background: "#fff8fc",
-                border: "1px solid #ffd6ef",
-                borderRadius: 12,
-                padding: 18,
-                minWidth: 260,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                width: "100%",
               }}
             >
-              <div style={{ marginBottom: 8 }}>
-                <input
-                  type="text"
-                  placeholder="Titre"
-                  value={globalNotifTitle}
-                  onChange={(e) => setGlobalNotifTitle(e.target.value)}
-                  style={{ ...inputStyle, width: "100%", marginBottom: 8 }}
-                />
-                <textarea
-                  placeholder="Message"
-                  value={globalNotifMsg}
-                  onChange={(e) => setGlobalNotifMsg(e.target.value)}
-                  style={{ ...inputStyle, width: "100%", minHeight: 40 }}
-                />
-              </div>
-              <div
-                style={{ display: "flex", gap: 10, justifyContent: "center" }}
+              <button
+                style={{ ...closeBtn, marginBottom: 8 }}
+                onClick={() => setShowGlobalNotif(false)}
               >
-                <button
-                  style={{
-                    ...bigBtn,
-                    fontSize: 15,
-                    background: "#fff",
-                    color: "#b86fa5",
-                    border: "1px solid #b86fa5",
-                  }}
-                  onClick={() => setShowGlobalNotif(false)}
-                >
-                  Annuler
-                </button>
-                <button
-                  style={{ ...bigBtn, fontSize: 15 }}
-                  onClick={sendGlobalNotification}
-                >
-                  Envoyer
-                </button>
-              </div>
-            </div>
-          )}
-          <button
-            style={{
-              ...bigBtn,
-              fontSize: 16,
-              background: "#fff0fa",
-              color: "#b86fa5",
-              border: "1px solid #b86fa5",
-            }}
-            onClick={forceSubscribeToPush}
-          >
-            Accepter les notifications
-          </button>
-          <button
-            style={{
-              ...bigBtn,
-              fontSize: 16,
-              background: "#fff0fa",
-              color: "#b86fa5",
-              border: "1px solid #b86fa5",
-            }}
-            onClick={copyMySubscription}
-          >
-            Copier ma subscription
-          </button>
-          <button
-            style={{
-              ...bigBtn,
-              fontSize: 16,
-              background: "#fff0fa",
-              color: "#b86fa5",
-              border: "1px solid #b86fa5",
-            }}
-            onClick={showMySubscription}
-          >
-            Afficher ma subscription
-          </button>
-          {showSubJson && (
-            <div style={{ width: "100%", marginTop: 8, marginBottom: 8 }}>
-              <textarea
-                style={mobileTextarea}
-                value={subJson}
-                readOnly
-                onFocus={(e) => e.target.select()}
-              />
-              <button style={closeBtn} onClick={() => setShowSubJson(false)}>
-                Fermer
+                Annuler
+              </button>
+              <button style={mobileBtn} onClick={sendGlobalNotification}>
+                Envoyer
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
