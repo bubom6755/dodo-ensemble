@@ -570,10 +570,24 @@ export default function Home() {
     responsesMap[r.user_id] = r.answer;
   });
   const nbReponses = Object.keys(responsesMap).length;
+  // Cherche la raison du 'Non' si elle existe
+  let nonReason = null;
+  let nonUser = null;
+  if (nbReponses > 0) {
+    const nonResp = allTodayResponses.find(
+      (r) => r.answer === "Non" && r.reason && r.reason.trim() !== ""
+    );
+    if (nonResp) {
+      nonReason = nonResp.reason;
+      nonUser = displayUserName(nonResp.user_id);
+    }
+  }
   if (nbReponses === ALL_USERS.length) {
     // Les deux ont répondu
     if (Object.values(responsesMap).some((ans) => ans === "Non")) {
-      mainMessage = "Non, pas ce soir.";
+      mainMessage = nonReason
+        ? `Non, pas ce soir car ${nonUser} ${nonReason}`
+        : "Non, pas ce soir.";
       mainColor = "#888";
       mainIcon = answerIcon["Non"];
     } else if (Object.values(responsesMap).every((ans) => ans === "Oui")) {
@@ -587,7 +601,9 @@ export default function Home() {
     }
   } else if (nbReponses > 0) {
     if (Object.values(responsesMap).some((ans) => ans === "Non")) {
-      mainMessage = "Non, pas ce soir.";
+      mainMessage = nonReason
+        ? `Non, pas ce soir car ${nonUser} ${nonReason}`
+        : "Non, pas ce soir.";
       mainColor = "#888";
       mainIcon = answerIcon["Non"];
     } else {
@@ -851,26 +867,6 @@ export default function Home() {
         `}</style>
       */}
       {toast && <div style={toastStyle}>{toast.message}</div>}
-      {notifEnabled && (
-        <div
-          style={{
-            position: "fixed",
-            top: 16,
-            right: 16,
-            background: "#ffebee",
-            color: "#d0488f",
-            border: "1.5px solid #ffcdd2",
-            borderRadius: 12,
-            padding: "10px 22px",
-            fontWeight: 600,
-            fontSize: 15,
-            boxShadow: "0 2px 16px rgba(255, 200, 220, 0.4)",
-            zIndex: 2000,
-          }}
-        >
-          Notifications activées !
-        </div>
-      )}
       <main
         style={{
           width: "100%",
