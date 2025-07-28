@@ -2,5 +2,9 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/planning": "pages/planning.js"
+  "/secrets": "pages/secrets.js",
+  "/agenda": "pages/agenda.js",
+  "/": "pages/index.js",
+  "/planning": "pages/planning.js",
+  "/story": "pages/story.js"
 }

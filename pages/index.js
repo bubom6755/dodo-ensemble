@@ -15,6 +15,7 @@ const mobileMainBg = {
   maxWidth: 420,
   width: "100%",
   margin: "0 auto",
+  height: "200vh",
 };
 
 const mobileCard = {
@@ -880,7 +881,7 @@ export default function Home() {
           flexDirection: "column",
           justifyContent: "flex-start",
           boxSizing: "border-box",
-          paddingBottom: 100,
+          paddingBottom: 140,
         }}
       >
         <div

@@ -84,6 +84,7 @@ export default function Agenda() {
     description: "",
     time: "",
     location: "",
+    is_mystery: false,
   });
   const [eventFormError, setEventFormError] = useState("");
   const [eventResponses, setEventResponses] = useState([]);
@@ -160,7 +161,14 @@ export default function Agenda() {
   }
 
   function openEventForm(date) {
-    setEventForm({ date, title: "", description: "", time: "", location: "" });
+    setEventForm({
+      date,
+      title: "",
+      description: "",
+      time: "",
+      location: "",
+      is_mystery: false,
+    });
     setShowEventForm(true);
     setEventFormError("");
   }
@@ -186,6 +194,7 @@ export default function Agenda() {
       description: eventForm.description,
       time: eventForm.time,
       location: eventForm.location,
+      is_mystery: eventForm.is_mystery,
       user_id: userId,
     });
     if (error) {
@@ -193,7 +202,11 @@ export default function Agenda() {
     } else {
       setShowEventForm(false);
       fetchEvents();
-      showToast("Événement créé !");
+      showToast(
+        eventForm.is_mystery
+          ? "Événement mystère créé ! 🎭"
+          : "Événement créé !"
+      );
     }
   }
 
@@ -418,6 +431,11 @@ export default function Agenda() {
                 const dateStr = toLocalDateString(d);
                 const isToday = dateStr === todayStr;
                 const hasEvent = !!eventsByDate[dateStr];
+                const event = eventsByDate[dateStr];
+                const isMystery = event?.is_mystery;
+                const isPast =
+                  new Date(dateStr) < new Date().setHours(0, 0, 0, 0);
+
                 return (
                   <div
                     key={dateStr}
@@ -427,14 +445,18 @@ export default function Agenda() {
                       background: isToday
                         ? "#fff0fa"
                         : hasEvent
-                        ? "#ffebee"
+                        ? isMystery && !isPast
+                          ? "#f0f8ff" // Bleu clair pour mystère
+                          : "#ffebee"
                         : "#fefefe",
                       textAlign: "center",
                       fontSize: 17,
                       color: isToday
                         ? "#d0488f"
                         : hasEvent
-                        ? "#d0488f"
+                        ? isMystery && !isPast
+                          ? "#2196f3" // Bleu pour mystère
+                          : "#d0488f"
                         : "#888",
                       cursor: "pointer",
                       position: "relative",
@@ -448,7 +470,9 @@ export default function Agenda() {
                       border: isToday
                         ? "2px solid #ff80ab"
                         : hasEvent
-                        ? "1.5px solid #ffcdd2"
+                        ? isMystery && !isPast
+                          ? "1.5px solid #90caf9" // Bordure bleue pour mystère
+                          : "1.5px solid #ffcdd2"
                         : "none",
                     }}
                     onClick={() =>
@@ -458,7 +482,9 @@ export default function Agenda() {
                     }
                     title={
                       hasEvent
-                        ? eventsByDate[dateStr].title
+                        ? isMystery && !isPast
+                          ? "🎭 Événement mystère"
+                          : eventsByDate[dateStr].title
                         : "Ajouter un événement"
                     }
                     onMouseEnter={(e) => {
@@ -485,13 +511,27 @@ export default function Agenda() {
                           width: 8,
                           height: 8,
                           borderRadius: 4,
-                          background: "#ff4081",
+                          background:
+                            isMystery && !isPast ? "#2196f3" : "#ff4081",
                           position: "absolute",
                           left: "50%",
                           bottom: 8,
                           transform: "translateX(-50%)",
                         }}
                       ></div>
+                    )}
+                    {isMystery && !isPast && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          fontSize: 12,
+                          color: "#2196f3",
+                        }}
+                      >
+                        🎭
+                      </div>
                     )}
                   </div>
                 );
@@ -517,108 +557,140 @@ export default function Agenda() {
                 </button>
               </div>
             ) : (
-              sortedEvents.map((event) => (
-                <div
-                  key={event.id}
-                  style={{
-                    ...mobileCard,
-                    cursor: "pointer",
-                    transition: "transform 0.2s ease-out",
-                  }}
-                  onClick={() => openEventModal(event)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "none";
-                  }}
-                >
+              sortedEvents.map((event) => {
+                const isMystery = event.is_mystery;
+                const isPast =
+                  new Date(event.date) < new Date().setHours(0, 0, 0, 0);
+                const shouldShowMystery = isMystery && !isPast;
+
+                return (
                   <div
+                    key={event.id}
                     style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 16,
+                      ...mobileCard,
+                      cursor: "pointer",
+                      transition: "transform 0.2s ease-out",
+                      border: shouldShowMystery ? "2px solid #90caf9" : "none",
+                      background: shouldShowMystery ? "#f0f8ff" : "#ffffff",
+                    }}
+                    onClick={() => openEventModal(event)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "none";
                     }}
                   >
                     <div
                       style={{
-                        background:
-                          "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                        borderRadius: 12,
-                        padding: "12px",
-                        color: "white",
-                        fontSize: 20,
-                        minWidth: 48,
-                        textAlign: "center",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 16,
                       }}
                     >
-                      📅
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3
-                        style={{
-                          color: "#d0488f",
-                          fontSize: 18,
-                          fontWeight: 700,
-                          margin: "0 0 8px 0",
-                        }}
-                      >
-                        {event.title}
-                      </h3>
-                      <p
-                        style={{
-                          color: "#b86fa5",
-                          fontSize: 16,
-                          margin: "0 0 4px 0",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {formatDateFr(event.date)}
-                        {event.time && (
-                          <span style={{ marginLeft: 8, opacity: 0.8 }}>
-                            ⏰ {event.time}
-                          </span>
-                        )}
-                      </p>
-                      {event.location && (
-                        <p
-                          style={{
-                            color: "#888",
-                            fontSize: 14,
-                            margin: "4px 0",
-                          }}
-                        >
-                          📍 {event.location}
-                        </p>
-                      )}
-                      {event.description && (
-                        <p
-                          style={{
-                            color: "#666",
-                            fontSize: 14,
-                            margin: "8px 0 0 0",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {event.description.length > 100
-                            ? event.description.substring(0, 100) + "..."
-                            : event.description}
-                        </p>
-                      )}
                       <div
                         style={{
-                          marginTop: 8,
-                          fontSize: 12,
-                          color: "#b86fa5",
-                          fontWeight: 500,
+                          background: shouldShowMystery
+                            ? "linear-gradient(135deg, #90caf9 0%, #2196f3 100%)"
+                            : "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
+                          borderRadius: 12,
+                          padding: "12px",
+                          color: "white",
+                          fontSize: 20,
+                          minWidth: 48,
+                          textAlign: "center",
                         }}
                       >
-                        👤 Créé par {displayUserName(event.user_id)}
+                        {shouldShowMystery ? "🎭" : "📅"}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h3
+                          style={{
+                            color: shouldShowMystery ? "#2196f3" : "#d0488f",
+                            fontSize: 18,
+                            fontWeight: 700,
+                            margin: "0 0 8px 0",
+                          }}
+                        >
+                          {shouldShowMystery
+                            ? "🎭 Événement mystère"
+                            : event.title}
+                        </h3>
+                        <p
+                          style={{
+                            color: shouldShowMystery ? "#1976d2" : "#b86fa5",
+                            fontSize: 16,
+                            margin: "0 0 4px 0",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {formatDateFr(event.date)}
+                          {event.time && !shouldShowMystery && (
+                            <span style={{ marginLeft: 8, opacity: 0.8 }}>
+                              ⏰ {event.time}
+                            </span>
+                          )}
+                        </p>
+                        {event.location && !shouldShowMystery && (
+                          <p
+                            style={{
+                              color: "#888",
+                              fontSize: 14,
+                              margin: "4px 0",
+                            }}
+                          >
+                            📍 {event.location}
+                          </p>
+                        )}
+                        {event.description && !shouldShowMystery && (
+                          <p
+                            style={{
+                              color: "#666",
+                              fontSize: 14,
+                              margin: "8px 0 0 0",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {event.description.length > 100
+                              ? event.description.substring(0, 100) + "..."
+                              : event.description}
+                          </p>
+                        )}
+                        {shouldShowMystery && (
+                          <p
+                            style={{
+                              color: "#2196f3",
+                              fontSize: 14,
+                              margin: "8px 0 0 0",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            La surprise sera révélée le jour J ! ✨
+                          </p>
+                        )}
+                        <div
+                          style={{
+                            marginTop: 8,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              color: shouldShowMystery ? "#1976d2" : "#b86fa5",
+                              fontWeight: 600,
+                            }}
+                          >
+                            👤 {displayUserName(event.user_id)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
@@ -652,112 +724,178 @@ export default function Agenda() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                background: "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
-                padding: "24px 32px 18px 32px",
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                borderBottom: "1px solid #f3d6e7",
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-              }}
-            >
-              <div style={{ fontSize: 32, color: "#d0488f" }}>📅</div>
-              <div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 22,
-                    color: "#d0488f",
-                    marginBottom: 2,
-                  }}
-                >
-                  {modalEvent.title}
-                </div>
-                <div
-                  style={{ color: "#b86fa5", fontSize: 16, fontWeight: 500 }}
-                >
-                  {formatDateFr(modalEvent.date)}
-                  {modalEvent.time && (
-                    <span style={{ marginLeft: 8 }}>⏰ {modalEvent.time}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={closeEventModal}
-                style={{
-                  marginLeft: "auto",
-                  background: "none",
-                  border: "none",
-                  fontSize: 26,
-                  color: "#b86fa5",
-                  cursor: "pointer",
-                  padding: 0,
-                  lineHeight: 1,
-                  transition: "color 0.15s",
-                }}
-                title="Fermer"
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ padding: "22px 32px 18px 32px" }}>
-              {modalEvent.location && (
-                <div
-                  style={{
-                    color: "#b86fa5",
-                    fontSize: 16,
-                    marginBottom: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontSize: 20 }}>📍</span>
-                  <span>{modalEvent.location}</span>
-                </div>
-              )}
-              {modalEvent.description && (
-                <div
-                  style={{
-                    color: "#444",
-                    fontSize: 16,
-                    marginBottom: 18,
-                    background: "#fff8fc",
-                    borderRadius: 8,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <span
+            {(() => {
+              const isMystery = modalEvent.is_mystery;
+              const isPast =
+                new Date(modalEvent.date) < new Date().setHours(0, 0, 0, 0);
+              const shouldShowMystery = isMystery && !isPast;
+
+              return (
+                <>
+                  <div
                     style={{
-                      fontWeight: 500,
-                      color: "#b86fa5",
-                      marginRight: 8,
+                      background: shouldShowMystery
+                        ? "linear-gradient(90deg, #e3f2fd 0%, #fff 100%)"
+                        : "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
+                      padding: "24px 32px 18px 32px",
+                      borderTopLeftRadius: 16,
+                      borderTopRightRadius: 16,
+                      borderBottom: "1px solid #f3d6e7",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
                     }}
                   >
-                    📝
-                  </span>
-                  {modalEvent.description}
-                </div>
-              )}
-              <div
-                style={{
-                  borderTop: "1px solid #f3d6e7",
-                  margin: "18px 0 0 0",
-                  paddingTop: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span style={{ fontSize: 18, color: "#b86fa5" }}>👤</span>
-                <span style={{ color: "#b86fa5", fontWeight: 600 }}>
-                  Créé par {displayUserName(modalEvent.user_id)}
-                </span>
-              </div>
-            </div>
+                    <div
+                      style={{
+                        fontSize: 32,
+                        color: shouldShowMystery ? "#2196f3" : "#d0488f",
+                      }}
+                    >
+                      {shouldShowMystery ? "🎭" : "📅"}
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 22,
+                          color: shouldShowMystery ? "#2196f3" : "#d0488f",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {shouldShowMystery
+                          ? "🎭 Événement mystère"
+                          : modalEvent.title}
+                      </div>
+                      <div
+                        style={{
+                          color: shouldShowMystery ? "#1976d2" : "#b86fa5",
+                          fontSize: 16,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {modalEvent.date}{" "}
+                        {modalEvent.time && !shouldShowMystery && (
+                          <span style={{ marginLeft: 8 }}>
+                            ⏰ {modalEvent.time}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={closeEventModal}
+                      style={{
+                        marginLeft: "auto",
+                        background: "none",
+                        border: "none",
+                        fontSize: 26,
+                        color: shouldShowMystery ? "#2196f3" : "#b86fa5",
+                        cursor: "pointer",
+                        padding: 0,
+                        lineHeight: 1,
+                        transition: "color 0.15s",
+                      }}
+                      title="Fermer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div style={{ padding: "22px 32px 18px 32px" }}>
+                    {shouldShowMystery ? (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "32px 16px",
+                          background: "#f0f8ff",
+                          borderRadius: 12,
+                          border: "2px solid #90caf9",
+                          marginBottom: 20,
+                        }}
+                      >
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>🎭</div>
+                        <h3
+                          style={{
+                            color: "#2196f3",
+                            fontSize: 20,
+                            fontWeight: 700,
+                            margin: "0 0 12px 0",
+                          }}
+                        >
+                          Événement mystère !
+                        </h3>
+                        <p
+                          style={{
+                            color: "#1976d2",
+                            fontSize: 16,
+                            lineHeight: 1.5,
+                            margin: 0,
+                          }}
+                        >
+                          La surprise sera révélée le{" "}
+                          {formatDateFr(modalEvent.date)} ! ✨
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {modalEvent.location && (
+                          <div
+                            style={{
+                              color: "#b86fa5",
+                              fontSize: 16,
+                              marginBottom: 10,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <span style={{ fontSize: 20 }}>📍</span>
+                            <span>{modalEvent.location}</span>
+                          </div>
+                        )}
+                        {modalEvent.description && (
+                          <div
+                            style={{
+                              color: "#444",
+                              fontSize: 16,
+                              marginBottom: 18,
+                              background: "#fff8fc",
+                              borderRadius: 8,
+                              padding: "12px 14px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontWeight: 500,
+                                color: "#b86fa5",
+                                marginRight: 8,
+                              }}
+                            >
+                              📝
+                            </span>
+                            {modalEvent.description}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div
+                      style={{
+                        borderTop: "1px solid #f3d6e7",
+                        margin: "18px 0 0 0",
+                        paddingTop: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span style={{ fontSize: 18, color: "#b86fa5" }}>👤</span>
+                      <span style={{ color: "#b86fa5", fontWeight: 600 }}>
+                        Créé par {displayUserName(modalEvent.user_id)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -765,182 +903,380 @@ export default function Agenda() {
       {/* Formulaire ajout événement */}
       {showEventForm && (
         <div style={modalOverlay} onClick={closeEventForm}>
-          <form
-            style={modalBox}
+          <div
+            style={{
+              ...modalBox,
+              maxWidth: 450,
+              padding: 0,
+              overflow: "hidden",
+              borderRadius: 24,
+              boxShadow: "0 20px 60px rgba(184, 111, 165, 0.4)",
+            }}
             onClick={(e) => e.stopPropagation()}
-            onSubmit={submitEventForm}
           >
-            <h2 style={{ color: "#ff4081", fontSize: 20, marginBottom: 16 }}>
-              Nouvel événement
-            </h2>
-            <div style={{ marginBottom: 10 }}>
-              <label
+            {/* Header du modal */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
+                padding: "24px 32px 20px 32px",
+                color: "white",
+                textAlign: "center",
+                position: "relative",
+              }}
+            >
+              <h2
                 style={{
-                  fontWeight: 600,
-                  color: "#d0488f",
-                  marginBottom: 6,
-                  display: "block",
+                  fontSize: 24,
+                  fontWeight: 700,
+                  margin: "0 0 8px 0",
+                  color: "white",
                 }}
               >
-                Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={eventForm.date}
-                onChange={handleEventFormChange}
+                ✨ Nouvel événement
+              </h2>
+              <p
                 style={{
-                  padding: 16,
-                  borderRadius: 10,
-                  border: "1px solid #ffcccb",
-                  fontSize: 18,
-                  marginBottom: 16,
-                  background: "#fff8fb",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontWeight: 600,
-                  color: "#d0488f",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Titre
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={eventForm.title}
-                onChange={handleEventFormChange}
-                style={{
-                  padding: 16,
-                  borderRadius: 10,
-                  border: "1px solid #ffcccb",
-                  fontSize: 18,
-                  marginBottom: 16,
-                  background: "#fff8fb",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontWeight: 600,
-                  color: "#d0488f",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Heure
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={eventForm.time}
-                onChange={handleEventFormChange}
-                style={{
-                  padding: 16,
-                  borderRadius: 10,
-                  border: "1px solid #ffcccb",
-                  fontSize: 18,
-                  marginBottom: 16,
-                  background: "#fff8fb",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontWeight: 600,
-                  color: "#d0488f",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Lieu
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={eventForm.location}
-                onChange={handleEventFormChange}
-                style={{
-                  padding: 16,
-                  borderRadius: 10,
-                  border: "1px solid #ffcccb",
-                  fontSize: 18,
-                  marginBottom: 16,
-                  background: "#fff8fb",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontWeight: 600,
-                  color: "#d0488f",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={eventForm.description}
-                onChange={handleEventFormChange}
-                style={{
-                  padding: 16,
-                  borderRadius: 10,
-                  border: "1px solid #ffcccb",
-                  fontSize: 18,
-                  marginBottom: 16,
-                  background: "#fff8fb",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  minHeight: 60,
-                  fontFamily: "inherit",
-                }}
-              />
-            </div>
-            {eventFormError && (
-              <div style={{ color: "red", marginBottom: 12 }}>
-                {eventFormError}
-              </div>
-            )}
-            <div style={{ textAlign: "right" }}>
-              <button
-                type="button"
-                style={{
-                  ...bigBtn,
                   fontSize: 16,
-                  background: "#fff",
-                  color: "#ff4081",
-                  border: "1.5px solid #ff80ab",
-                  marginRight: 10,
+                  opacity: 0.9,
+                  margin: 0,
+                  color: "white",
                 }}
-                onClick={closeEventForm}
               >
-                Annuler
-              </button>
-              <button type="submit" style={{ ...bigBtn, fontSize: 16 }}>
-                Enregistrer
+                {formatDateFr(eventForm.date)}
+              </p>
+              <button
+                onClick={closeEventForm}
+                style={{
+                  position: "absolute",
+                  top: 20,
+                  right: 20,
+                  background: "rgba(255,255,255,0.2)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 36,
+                  height: 36,
+                  fontSize: 20,
+                  color: "white",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.3)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
+                }
+                title="Fermer"
+              >
+                ×
               </button>
             </div>
-          </form>
+
+            {/* Contenu du formulaire */}
+            <form onSubmit={submitEventForm} style={{ padding: "32px" }}>
+              {/* Titre */}
+              <div style={{ marginBottom: 24 }}>
+                <label
+                  style={{
+                    fontWeight: 600,
+                    color: "#d0488f",
+                    marginBottom: 8,
+                    display: "block",
+                    fontSize: 16,
+                  }}
+                >
+                  📝 Titre de l'événement
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={eventForm.title}
+                  onChange={handleEventFormChange}
+                  placeholder="Ex: Dîner romantique, Sortie cinéma..."
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    border: "2px solid #ffd6ef",
+                    fontSize: 16,
+                    background: "#fff8fc",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#ff4081";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#ffd6ef";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  required
+                />
+              </div>
+
+              {/* Heure */}
+              <div style={{ marginBottom: 24 }}>
+                <label
+                  style={{
+                    fontWeight: 600,
+                    color: "#d0488f",
+                    marginBottom: 8,
+                    display: "block",
+                    fontSize: 16,
+                  }}
+                >
+                  ⏰ Heure
+                </label>
+                <input
+                  type="time"
+                  name="time"
+                  value={eventForm.time}
+                  onChange={handleEventFormChange}
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    border: "2px solid #ffd6ef",
+                    fontSize: 16,
+                    background: "#fff8fc",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#ff4081";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#ffd6ef";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+
+              {/* Lieu */}
+              <div style={{ marginBottom: 24 }}>
+                <label
+                  style={{
+                    fontWeight: 600,
+                    color: "#d0488f",
+                    marginBottom: 8,
+                    display: "block",
+                    fontSize: 16,
+                  }}
+                >
+                  📍 Lieu
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={eventForm.location}
+                  onChange={handleEventFormChange}
+                  placeholder="Ex: Restaurant Le Petit Bistrot, Cinéma..."
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    border: "2px solid #ffd6ef",
+                    fontSize: 16,
+                    background: "#fff8fc",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#ff4081";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#ffd6ef";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: 24 }}>
+                <label
+                  style={{
+                    fontWeight: 600,
+                    color: "#d0488f",
+                    marginBottom: 8,
+                    display: "block",
+                    fontSize: 16,
+                  }}
+                >
+                  💭 Description (optionnel)
+                </label>
+                <textarea
+                  name="description"
+                  value={eventForm.description}
+                  onChange={handleEventFormChange}
+                  placeholder="Ajoutez des détails sur l'événement..."
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    border: "2px solid #ffd6ef",
+                    fontSize: 16,
+                    background: "#fff8fc",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minHeight: 80,
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#ff4081";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#ffd6ef";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+
+              {/* Option Mystère */}
+              <div
+                style={{
+                  marginBottom: 32,
+                  padding: "16px",
+                  background: "#fff8fc",
+                  borderRadius: 12,
+                  border: "2px solid #ffd6ef",
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    cursor: "pointer",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "#d0488f",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    name="is_mystery"
+                    checked={eventForm.is_mystery}
+                    onChange={(e) =>
+                      setEventForm({
+                        ...eventForm,
+                        is_mystery: e.target.checked,
+                      })
+                    }
+                    style={{
+                      width: 20,
+                      height: 20,
+                      accentColor: "#ff4081",
+                    }}
+                  />
+                  <span style={{ fontSize: 20 }}>🎭</span>
+                  <span>Événement mystère</span>
+                </label>
+                <p
+                  style={{
+                    margin: "8px 0 0 32px",
+                    fontSize: 14,
+                    color: "#666",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  L'événement sera caché jusqu'au jour J pour créer la surprise
+                  !
+                </p>
+              </div>
+
+              {/* Message d'erreur */}
+              {eventFormError && (
+                <div
+                  style={{
+                    color: "#e74c3c",
+                    marginBottom: 20,
+                    padding: "12px 16px",
+                    background: "#fdf2f2",
+                    borderRadius: 8,
+                    border: "1px solid #fecaca",
+                    fontSize: 14,
+                  }}
+                >
+                  ⚠️ {eventFormError}
+                </div>
+              )}
+
+              {/* Boutons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={closeEventForm}
+                  style={{
+                    padding: "14px 24px",
+                    borderRadius: 12,
+                    border: "2px solid #ffd6ef",
+                    background: "#fff",
+                    color: "#ff4081",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#fff8fc";
+                    e.currentTarget.style.borderColor = "#ff80ab";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#fff";
+                    e.currentTarget.style.borderColor = "#ffd6ef";
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "14px 32px",
+                    borderRadius: 12,
+                    border: "none",
+                    background:
+                      "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
+                    color: "white",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    boxShadow: "0 4px 12px rgba(255, 64, 129, 0.3)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 16px rgba(255, 64, 129, 0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(255, 64, 129, 0.3)";
+                  }}
+                >
+                  ✨ Créer l'événement
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

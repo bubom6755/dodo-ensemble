@@ -104,7 +104,6 @@ const STATUS_OPTIONS = [
   { value: "work", label: "Travail", icon: "💼", color: "#ff4081" },
   { value: "rest", label: "Repos", icon: "😴", color: "#4caf50" },
   { value: "remote", label: "Télétravail", icon: "🏠", color: "#2196f3" },
-  { value: "hidden", label: "Jour caché", icon: "🔒", color: "#9e9e9e" },
 ];
 
 const ALL_USERS = ["victor", "alyssia"];
@@ -120,6 +119,21 @@ export default function Planning() {
     start_time: "",
     end_time: "",
     status: "work",
+  });
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    start_time: "",
+    end_time: "",
+    status: "work",
+    apply_to_days: {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: false,
+      sunday: false,
+    },
   });
   const [plannings, setPlannings] = useState({});
   const [loading, setLoading] = useState(false);
@@ -167,7 +181,7 @@ export default function Planning() {
       .select("status")
       .eq("user_id", userId)
       .eq("day_of_week", tomorrowDay.id)
-      .single();
+      .maybeSingle();
 
     if (!error && data && data.status === "rest") {
       showToast("Demain est un jour de repos ! 😴", "#4caf50");
@@ -201,6 +215,8 @@ export default function Planning() {
         });
       });
       setPlannings(planningsByUser);
+    } else {
+      console.error("Erreur fetchPlannings:", error);
     }
     setLoading(false);
   }
@@ -221,32 +237,120 @@ export default function Planning() {
     setEditingDay(null);
   }
 
+  function openBulkEditModal() {
+    setShowBulkEditModal(true);
+  }
+
+  function closeBulkEditModal() {
+    setShowBulkEditModal(false);
+  }
+
   function handleEditFormChange(e) {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  }
+
+  function handleBulkEditFormChange(e) {
+    setBulkEditForm({ ...bulkEditForm, [e.target.name]: e.target.value });
+  }
+
+  function handleBulkEditDayChange(dayId, checked) {
+    setBulkEditForm({
+      ...bulkEditForm,
+      apply_to_days: {
+        ...bulkEditForm.apply_to_days,
+        [dayId]: checked,
+      },
+    });
   }
 
   async function savePlanning() {
     if (!editingDay) return;
 
-    const { error } = await supabase.from("weekly_plannings").upsert(
-      {
-        user_id: userId,
-        day_of_week: editingDay.id,
-        start_time: editForm.start_time,
-        end_time: editForm.end_time,
-        status: editForm.status,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: ["user_id", "day_of_week"],
-      }
-    );
+    const planningData = {
+      user_id: userId,
+      day_of_week: editingDay.id,
+      status: editForm.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Ajouter les horaires seulement si ce n'est pas repos
+    if (editForm.status !== "rest") {
+      planningData.start_time = editForm.start_time || null;
+      planningData.end_time = editForm.end_time || null;
+    } else {
+      planningData.start_time = null;
+      planningData.end_time = null;
+    }
+
+    // Utiliser upsert pour remplacer ou créer
+    const { error } = await supabase
+      .from("weekly_plannings")
+      .upsert(planningData, {
+        onConflict: "user_id,day_of_week",
+      });
 
     if (error) {
+      console.error("Erreur savePlanning:", error);
       showToast("Erreur lors de la sauvegarde", "red");
+      return;
+    }
+
+    showToast("Planning sauvegardé !");
+    closeEditModal();
+    fetchPlannings();
+  }
+
+  async function saveBulkPlanning() {
+    const selectedDays = Object.keys(bulkEditForm.apply_to_days).filter(
+      (day) => bulkEditForm.apply_to_days[day]
+    );
+
+    if (selectedDays.length === 0) {
+      showToast("Sélectionnez au moins un jour", "red");
+      return;
+    }
+
+    const planningData = {
+      user_id: userId,
+      status: bulkEditForm.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Ajouter les horaires seulement si ce n'est pas repos
+    if (bulkEditForm.status !== "rest") {
+      planningData.start_time = bulkEditForm.start_time || null;
+      planningData.end_time = bulkEditForm.end_time || null;
     } else {
-      showToast("Planning sauvegardé !");
-      closeEditModal();
+      planningData.start_time = null;
+      planningData.end_time = null;
+    }
+
+    // Sauvegarder chaque jour sélectionné avec upsert
+    const promises = selectedDays.map(async (dayId) => {
+      const dayData = { ...planningData, day_of_week: dayId };
+
+      const { error } = await supabase
+        .from("weekly_plannings")
+        .upsert(dayData, {
+          onConflict: "user_id,day_of_week",
+        });
+
+      if (error) {
+        console.error(`Erreur savePlanning pour ${dayId}:`, error);
+        return { success: false, day: dayId, error };
+      }
+
+      return { success: true, day: dayId };
+    });
+
+    const results = await Promise.all(promises);
+    const failedDays = results.filter((r) => !r.success);
+
+    if (failedDays.length > 0) {
+      showToast(`Erreur pour ${failedDays.length} jour(s)`, "red");
+    } else {
+      showToast(`${selectedDays.length} jour(s) sauvegardé(s) !`);
+      closeBulkEditModal();
       fetchPlannings();
     }
   }
@@ -286,21 +390,11 @@ export default function Planning() {
     const status = STATUS_OPTIONS.find((s) => s.value === planning.status);
     if (!status) return { label: "Non défini", icon: "❓", color: "#ccc" };
 
-    // Si c'est un jour caché et qu'on regarde le planning de l'autre
-    if (planning.status === "hidden" && !isOwnPlanning) {
-      return { label: "Indisponible", icon: "🔒", color: "#9e9e9e" };
-    }
-
     return status;
   }
 
   function getTimeDisplay(planning, isOwnPlanning = false) {
     if (!planning) return "";
-
-    // Si c'est un jour caché et qu'on regarde le planning de l'autre
-    if (planning.status === "hidden" && !isOwnPlanning) {
-      return "";
-    }
 
     if (planning.start_time && planning.end_time) {
       return `${planning.start_time} - ${planning.end_time}`;
@@ -409,6 +503,25 @@ export default function Planning() {
               👫 Tous les deux
             </button>
           </div>
+
+          {/* Bouton modifier tous les jours (visible seulement en vue "Moi") */}
+          {viewMode === "me" && (
+            <div style={{ marginBottom: 20 }}>
+              <button
+                style={{
+                  ...bigBtn,
+                  fontSize: 16,
+                  padding: "0.8rem 2rem",
+                  background:
+                    "linear-gradient(90deg, #4caf50 0%, #45a049 100%)",
+                  border: "none",
+                }}
+                onClick={openBulkEditModal}
+              >
+                ⚡ Modifier tous les jours
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Planning */}
@@ -677,7 +790,7 @@ export default function Planning() {
               </select>
             </div>
 
-            {editForm.status !== "rest" && editForm.status !== "hidden" && (
+            {editForm.status !== "rest" && (
               <>
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>Heure de début</label>
@@ -724,6 +837,151 @@ export default function Planning() {
                 onClick={savePlanning}
               >
                 Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification en masse */}
+      {showBulkEditModal && (
+        <div style={modalOverlay} onClick={closeBulkEditModal}>
+          <div
+            style={{
+              ...modalBox,
+              maxWidth: 450,
+              maxHeight: "90vh",
+              overflow: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ color: "#ff4081", fontSize: 20, marginBottom: 16 }}>
+              ⚡ Modifier plusieurs jours
+            </h2>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Statut</label>
+              <select
+                name="status"
+                value={bulkEditForm.status}
+                onChange={handleBulkEditFormChange}
+                style={mobileInput}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.icon} {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {bulkEditForm.status !== "rest" && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>Heure de début</label>
+                  <input
+                    type="time"
+                    name="start_time"
+                    value={bulkEditForm.start_time}
+                    onChange={handleBulkEditFormChange}
+                    style={mobileInput}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>Heure de fin</label>
+                  <input
+                    type="time"
+                    name="end_time"
+                    value={bulkEditForm.end_time}
+                    onChange={handleBulkEditFormChange}
+                    style={mobileInput}
+                  />
+                </div>
+              </>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Appliquer aux jours :</label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                {DAYS_OF_WEEK.map((day) => (
+                  <label
+                    key={day.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      background: bulkEditForm.apply_to_days[day.id]
+                        ? "#fff0fa"
+                        : "#f8f8f8",
+                      borderRadius: 8,
+                      border: bulkEditForm.apply_to_days[day.id]
+                        ? "1px solid #ff80ab"
+                        : "1px solid #ddd",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkEditForm.apply_to_days[day.id]}
+                      onChange={(e) =>
+                        handleBulkEditDayChange(day.id, e.target.checked)
+                      }
+                      style={{ margin: 0 }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: bulkEditForm.apply_to_days[day.id]
+                          ? 600
+                          : 500,
+                        color: bulkEditForm.apply_to_days[day.id]
+                          ? "#ff4081"
+                          : "#666",
+                      }}
+                    >
+                      {day.short}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ textAlign: "right" }}>
+              <button
+                type="button"
+                style={{
+                  ...bigBtn,
+                  fontSize: 16,
+                  background: "#fff",
+                  color: "#ff4081",
+                  border: "1.5px solid #ff80ab",
+                  marginRight: 10,
+                }}
+                onClick={closeBulkEditModal}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                style={{
+                  ...bigBtn,
+                  fontSize: 16,
+                  background:
+                    "linear-gradient(90deg, #4caf50 0%, #45a049 100%)",
+                }}
+                onClick={saveBulkPlanning}
+              >
+                Sauvegarder
               </button>
             </div>
           </div>
