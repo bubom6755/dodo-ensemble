@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
+import BottomNavigation from "../components/BottomNavigation";
 
 // ---------------------------------------------------
 // START OF UPDATED STYLE CONSTANTS
@@ -879,7 +880,7 @@ export default function Home() {
           flexDirection: "column",
           justifyContent: "flex-start",
           boxSizing: "border-box",
-          paddingBottom: 80,
+          paddingBottom: 100,
         }}
       >
         <div
@@ -1862,6 +1863,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      <BottomNavigation activePage="home" />
       <style jsx global>{`
         @keyframes hourglass-flip {
           0% {
