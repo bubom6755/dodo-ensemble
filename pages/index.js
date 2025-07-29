@@ -1416,33 +1416,41 @@ export default function Home() {
             <div
               style={{
                 ...modalBox,
-                maxWidth: 420,
+                maxWidth: 380,
                 padding: 0,
                 overflow: "hidden",
-                boxShadow: "0 8px 40px rgba(184, 111, 165, 0.5)",
+                boxShadow: "0 8px 32px rgba(208, 72, 143, 0.18)",
+                borderRadius: 22,
+                background: "#fff",
+                margin: 0,
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Header */}
               <div
                 style={{
                   background: "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
-                  padding: "24px 32px 18px 32px",
-                  borderTopLeftRadius: 16,
-                  borderTopRightRadius: 16,
+                  padding: "20px 28px 12px 28px",
+                  borderTopLeftRadius: 22,
+                  borderTopRightRadius: 22,
                   borderBottom: "1px solid #f3d6e7",
                   display: "flex",
                   alignItems: "center",
-                  gap: 16,
+                  justifyContent: "space-between",
+                  gap: 12,
                 }}
               >
-                <div style={{ fontSize: 32, color: "#d0488f" }}>📅</div>
-                <div>
+                <div style={{ fontSize: 28, color: "#d0488f" }}>📅</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
                       fontWeight: 700,
-                      fontSize: 22,
+                      fontSize: 20,
                       color: "#d0488f",
                       marginBottom: 2,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {modalEvent.is_mystery &&
@@ -1451,9 +1459,9 @@ export default function Home() {
                       : modalEvent.title}
                   </div>
                   <div
-                    style={{ color: "#b86fa5", fontSize: 16, fontWeight: 500 }}
+                    style={{ color: "#b86fa5", fontSize: 15, fontWeight: 500 }}
                   >
-                    {modalEvent.date}{" "}
+                    {modalEvent.date}
                     {modalEvent.time && (
                       <span style={{ marginLeft: 8 }}>{modalEvent.time}</span>
                     )}
@@ -1462,7 +1470,6 @@ export default function Home() {
                 <button
                   onClick={closeEventModal}
                   style={{
-                    marginLeft: "auto",
                     background: "none",
                     border: "none",
                     fontSize: 26,
@@ -1470,6 +1477,7 @@ export default function Home() {
                     cursor: "pointer",
                     padding: 0,
                     lineHeight: 1,
+                    marginLeft: 8,
                     transition: "color 0.15s",
                   }}
                   title="Fermer"
@@ -1477,354 +1485,80 @@ export default function Home() {
                   ×
                 </button>
               </div>
-              <div style={{ padding: "22px 32px 18px 32px" }}>
+              {/* Body */}
+              <div style={{ padding: "22px 28px 18px 28px" }}>
+                {/* Lieu */}
                 {modalEvent.location &&
                   (!modalEvent.is_mystery ||
                     isMysteryEventRevealed(modalEvent)) && (
                     <div
                       style={{
                         color: "#b86fa5",
-                        fontSize: 16,
+                        fontSize: 15,
                         marginBottom: 10,
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
+                        fontWeight: 500,
                       }}
                     >
-                      <span style={{ fontSize: 20 }}>📍</span>
-                      <span>{modalEvent.location}</span>
+                      <span style={{ fontSize: 18 }}>📍</span>
+                      <span style={{ overflowWrap: "anywhere" }}>
+                        {modalEvent.location}
+                      </span>
                     </div>
                   )}
+                {/* Description */}
                 {modalEvent.description &&
                   (!modalEvent.is_mystery ||
                     isMysteryEventRevealed(modalEvent)) && (
                     <div
                       style={{
                         color: "#444",
-                        fontSize: 16,
-                        marginBottom: 18,
+                        fontSize: 15,
+                        marginBottom: 10,
                         background: "#fff8fc",
                         borderRadius: 8,
-                        padding: "12px 14px",
+                        padding: "10px 12px",
+                        fontWeight: 400,
+                        wordBreak: "break-word",
                       }}
                     >
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#b86fa5",
-                          marginRight: 8,
-                        }}
-                      >
-                        📝
-                      </span>
                       {modalEvent.description}
                     </div>
                   )}
+                {/* Mystère non révélé */}
                 {modalEvent.is_mystery &&
                   !isMysteryEventRevealed(modalEvent) && (
                     <div
                       style={{
-                        background: "rgba(33, 150, 243, 0.1)",
-                        border: "1px solid rgba(33, 150, 243, 0.2)",
-                        borderRadius: 12,
-                        padding: 16,
-                        marginBottom: 20,
-                        color: "#1976d2",
-                        fontSize: 14,
-                        fontWeight: 600,
-                      }}
-                    >
-                      🎭 Cet événement est un mystère ! Les détails ne seront
-                      révélés qu'au moment venu.
-                    </div>
-                  )}
-                {modalEvent.is_mystery &&
-                  isMysteryEventRevealed(modalEvent) && (
-                    <div
-                      style={{
-                        background: "rgba(76, 175, 80, 0.1)",
-                        border: "1px solid rgba(76, 175, 80, 0.2)",
-                        borderRadius: 12,
-                        padding: 16,
-                        marginBottom: 20,
-                        color: "#2e7d32",
-                        fontSize: 14,
-                        fontWeight: 600,
-                      }}
-                    >
-                      🎉 Le mystère est révélé ! Voici tous les détails de
-                      l'événement.
-                    </div>
-                  )}
-                <div
-                  style={{
-                    borderTop: "1px solid #f3d6e7",
-                    margin: "18px 0 0 0",
-                    paddingTop: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ fontSize: 18, color: "#b86fa5" }}>👤</span>
-                  <span style={{ color: "#b86fa5", fontWeight: 600 }}>
-                    Créé par {displayUserName(modalEvent.user_id)}
-                  </span>
-                  {/* Bouton supprimer visible uniquement pour le créateur */}
-                  {modalEvent.user_id === userId && (
-                    <button
-                      onClick={handleDeleteEvent}
-                      style={{
-                        marginLeft: 16,
-                        background: "#fff0fa",
-                        color: "#d0488f",
-                        border: "1px solid #ffd6ef",
-                        borderRadius: 8,
-                        padding: "6px 14px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "transform 0.1s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.transform = "scale(1.05)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.transform = "none")
-                      }
-                    >
-                      Supprimer
-                    </button>
-                  )}
-                </div>
-                {/* Affichage des réponses Oui/Non */}
-                <div
-                  style={{
-                    marginTop: 18,
-                    marginBottom: 8,
-                    display: "flex",
-                    gap: 18,
-                    alignItems: "center",
-                  }}
-                >
-                  {ALL_USERS.map((uid) => {
-                    const resp = eventResponses.find((r) => r.user_id === uid);
-                    return (
-                      <div
-                        key={uid}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          background: "#f8f8fa",
-                          borderRadius: 8,
-                          padding: "6px 12px",
-                        }}
-                      >
-                        <span style={{ color: "#b86fa5", fontWeight: 600 }}>
-                          {displayUserName(uid)}
-                        </span>
-                        {resp ? (
-                          <>
-                            <span style={{ fontSize: 18, marginLeft: 4 }}>
-                              {resp.answer === "Oui" ? "🌸 Oui" : "🥀 Non"}
-                            </span>
-                            {resp.comment && (
-                              <span
-                                style={{
-                                  color: "#b86fa5",
-                                  fontSize: 14,
-                                  marginLeft: 8,
-                                }}
-                              >
-                                🗨️ {resp.comment}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span
-                            style={{
-                              color: "#bbb",
-                              fontSize: 15,
-                              marginLeft: 4,
-                            }}
-                          >
-                            —
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Si ce n'est pas le créateur, proposer Oui/Non + commentaire, même si déjà répondu */}
-                {modalEvent.user_id !== userId && (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-                      <button
-                        onClick={() => handleEventAnswer("Oui")}
-                        style={{
-                          ...bigBtn,
-                          fontSize: 16,
-                          background: eventResponses.find(
-                            (r) => r.user_id === userId && r.answer === "Oui"
-                          )
-                            ? "#ffeef8"
-                            : bigBtn.background, // Use original background if not selected
-                          color: eventResponses.find(
-                            (r) => r.user_id === userId && r.answer === "Oui"
-                          )
-                            ? "#d0488f"
-                            : bigBtn.color,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform =
-                            bigBtnHover.transform)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "none")
-                        }
-                      >
-                        Oui 🌸
-                      </button>
-                      <button
-                        onClick={() => handleEventAnswer("Non")}
-                        style={{
-                          ...bigBtn,
-                          fontSize: 16,
-                          background: eventResponses.find(
-                            (r) => r.user_id === userId && r.answer === "Non"
-                          )
-                            ? "#ffeef8"
-                            : bigBtn.background, // Use original background if not selected
-                          color: eventResponses.find(
-                            (r) => r.user_id === userId && r.answer === "Non"
-                          )
-                            ? "#d0488f"
-                            : bigBtn.color,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform =
-                            bigBtnHover.transform)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "none")
-                        }
-                      >
-                        Non 🥀
-                      </button>
-                    </div>
-                    <textarea
-                      placeholder="Ajouter un commentaire (facultatif)"
-                      value={eventComment}
-                      onChange={(e) => setEventComment(e.target.value)}
-                      style={{
-                        ...mobileInput,
-                        width: "100%",
-                        minHeight: 40,
+                        background: "rgba(33, 150, 243, 0.08)",
+                        border: "1px solid rgba(33, 150, 243, 0.13)",
+                        borderRadius: 10,
+                        padding: 12,
                         marginBottom: 8,
+                        color: "#1976d2",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        textAlign: "center",
                       }}
-                    />
-                    <button
-                      onClick={() =>
-                        handleEventAnswer(
-                          eventResponses.find((r) => r.user_id === userId)
-                            ?.answer || "Oui"
-                        )
-                      }
-                      style={{
-                        ...bigBtn,
-                        fontSize: 15,
-                        padding: "0.5rem 1.2rem",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.transform =
-                          bigBtnHover.transform)
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.transform = "none")
-                      }
                     >
-                      Enregistrer
-                    </button>
-                    {/* Bouton Relancer */}
-                    {(() => {
-                      const otherUser = ALL_USERS.find((u) => u !== userId);
-                      const otherHasAnswered = eventResponses.find(
-                        (r) => r.user_id === otherUser
-                      );
-                      const reminderKey = modalEvent.id + "_" + userId;
-                      const reminderCount = reminders[reminderKey] || 0;
-                      const maxReminders = 2;
-                      if (!otherHasAnswered) {
-                        return (
-                          <div style={{ marginTop: 12 }}>
-                            <textarea
-                              placeholder="Message de rappel personnalisé"
-                              value={reminderMsg}
-                              onChange={(e) => setReminderMsg(e.target.value)}
-                              style={{
-                                ...mobileInput,
-                                width: "100%",
-                                minHeight: 32,
-                                marginBottom: 6,
-                              }}
-                              maxLength={120}
-                            />
-                            <button
-                              onClick={() => {
-                                sendNativePushNotification({
-                                  title: `Petit rappel 💬`,
-                                  message: reminderMsg.trim()
-                                    ? reminderMsg
-                                    : `${displayUserName(
-                                        userId
-                                      )} te rappelle de répondre à l'événement : ${
-                                        modalEvent.is_mystery &&
-                                        !isMysteryEventRevealed(modalEvent)
-                                          ? "Événement mystère"
-                                          : modalEvent.title
-                                      }`,
-                                  targetUserId: otherUser,
-                                });
-                                showToast("Rappel envoyé !", "#b86fa5");
-                                incrementReminder(modalEvent.id, userId);
-                                setReminderMsg("");
-                              }}
-                              style={{
-                                ...bigBtn,
-                                fontSize: 15,
-                                background: "#fff0fa",
-                                color: "#b86fa5",
-                                border: "1px solid #b86fa5",
-                                marginTop: 2,
-                                opacity:
-                                  reminderCount >= maxReminders ? 0.5 : 1,
-                                cursor:
-                                  reminderCount >= maxReminders
-                                    ? "not-allowed"
-                                    : "pointer",
-                              }}
-                              disabled={reminderCount >= maxReminders}
-                              onMouseEnter={(e) => {
-                                if (reminderCount < maxReminders) {
-                                  e.currentTarget.style.transform =
-                                    bigBtnHover.transform;
-                                }
-                              }}
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.transform = "none")
-                              }
-                            >
-                              Relancer {displayUserName(otherUser)} (
-                              {maxReminders - reminderCount} restant
-                              {maxReminders - reminderCount > 1 ? "s" : ""})
-                            </button>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
+                      🎭 Cet événement est un mystère ! Les détails seront
+                      révélés au moment venu.
+                    </div>
+                  )}
+                {/* Créateur */}
+                <div
+                  style={{
+                    marginTop: 10,
+                    color: "#b86fa5",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    textAlign: "right",
+                  }}
+                >
+                  Créé par {displayUserName(modalEvent.user_id)}
+                </div>
               </div>
             </div>
           </div>

@@ -21,6 +21,7 @@ export default function Films() {
   const startX = useRef(0);
   const currentX = useRef(0);
   const isDragging = useRef(false);
+  const searchTimeoutRef = useRef(null);
 
   const TMDB_API_KEY = "412d289d13a5da399d1488cbef5e32db"; // Clé publique TMDB
   const TMDB_BASE_URL = "https://api.themoviedb.org/3";
@@ -232,6 +233,15 @@ export default function Films() {
     }
   }, [userId]);
 
+  // Nettoyer le timeout de recherche quand le composant se démonte
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   async function checkAndLoadRandomMovies() {
     const { data, error } = await supabase.from("movies").select("id").limit(1);
 
@@ -246,7 +256,10 @@ export default function Films() {
 
   // Rechercher des films sur TMDB
   async function searchMovies(query) {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
     setSearching(true);
     try {
@@ -265,6 +278,27 @@ export default function Films() {
       showToast("Erreur lors de la recherche", "red");
     }
     setSearching(false);
+  }
+
+  // Gérer la saisie de recherche avec délai
+  function handleSearchInput(value) {
+    setSearchQuery(value);
+
+    // Annuler le timeout précédent
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Si le champ est vide, vider les résultats
+    if (!value.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    // Créer un nouveau timeout de 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      searchMovies(value);
+    }, 300);
   }
 
   // Ajouter un film à la base de données
@@ -444,7 +478,17 @@ export default function Films() {
         onClick={() => setShowAddModal(true)}
       >
         <div className="add-button-content">
-          <span className="add-icon">➕</span>
+          <span className="add-icon">+</span>
+        </div>
+      </button>
+
+      {/* Bouton des matchs flottant */}
+      <button
+        className="matches-button"
+        onClick={() => router.push("/films/matchs")}
+      >
+        <div className="matches-button-content">
+          <span className="matches-icon">💕</span>
         </div>
       </button>
 
@@ -525,6 +569,17 @@ export default function Films() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
+              {/* Indicateur pour les films ajoutés par le partenaire */}
+              {currentMovie.added_by !== userId &&
+                currentMovie.added_by !== "system" && (
+                  <div className="partner-indicator">
+                    <span className="partner-icon">💝</span>
+                    <span className="partner-text">
+                      Ajouté par {displayUserName(currentMovie.added_by)}
+                    </span>
+                  </div>
+                )}
+
               <div className="movie-image-container">
                 <img
                   src={getImageUrl(currentMovie.poster_path)}
@@ -551,17 +606,6 @@ export default function Films() {
                         ? `${currentMovie.overview.substring(0, 150)}...`
                         : currentMovie.overview}
                     </p>
-
-                    {/* Indicateur pour les films ajoutés par le partenaire */}
-                    {currentMovie.added_by !== userId &&
-                      currentMovie.added_by !== "system" && (
-                        <div className="partner-indicator">
-                          <span className="partner-icon">💝</span>
-                          <span className="partner-text">
-                            Ajouté par {displayUserName(currentMovie.added_by)}
-                          </span>
-                        </div>
-                      )}
                   </div>
                 </div>
               </div>
@@ -615,16 +659,14 @@ export default function Films() {
                   type="text"
                   placeholder="Rechercher un film..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchInput(e.target.value)}
                   className="search-input"
                 />
-                <button
-                  className="search-button"
-                  onClick={() => searchMovies(searchQuery)}
-                  disabled={searching}
-                >
-                  {searching ? "🔍" : "Rechercher"}
-                </button>
+                {searching && (
+                  <div className="search-loading">
+                    <span className="loading-spinner">🔄</span>
+                  </div>
+                )}
               </div>
 
               {searchResults.length > 0 && (
@@ -790,8 +832,43 @@ export default function Films() {
         }
 
         .add-icon {
-          font-size: 24px;
           color: white;
+          font-size: 24px;
+          font-weight: 700;
+        }
+
+        .matches-button {
+          position: fixed;
+          bottom: 100px;
+          left: 24px;
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #ff80ab 0%, #ff4081 100%);
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 4px 16px rgba(255, 64, 129, 0.4);
+          transition: all 0.3s ease;
+          z-index: 100;
+        }
+
+        .matches-button:hover {
+          transform: scale(1.1);
+          box-shadow: 0 6px 20px rgba(255, 64, 129, 0.6);
+        }
+
+        .matches-button-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        .matches-icon {
+          color: white;
+          font-size: 24px;
+          font-weight: 700;
         }
 
         .films-content {
@@ -1095,6 +1172,7 @@ export default function Films() {
           display: flex;
           gap: 12px;
           margin-bottom: 20px;
+          align-items: center;
         }
 
         .search-input {
@@ -1114,22 +1192,26 @@ export default function Films() {
           box-shadow: 0 0 0 3px rgba(255, 128, 171, 0.1);
         }
 
-        .search-button {
-          padding: 12px 16px;
-          border: none;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #ff80ab 0%, #ff4081 100%);
-          color: white;
-          font-weight: 600;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          white-space: nowrap;
+        .search-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
         }
 
-        .search-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+        .loading-spinner {
+          font-size: 20px;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .search-results {
@@ -1307,7 +1389,6 @@ export default function Films() {
           display: flex;
           align-items: center;
           gap: 6px;
-          margin-top: 12px;
           background: rgba(255, 255, 255, 0.2);
           padding: 4px 8px;
           border-radius: 12px;
@@ -1315,9 +1396,11 @@ export default function Films() {
           font-weight: 500;
           color: white;
           position: absolute;
-          bottom: 16px;
-          left: 16px;
-          z-index: 1;
+          top: 12px;
+          right: 12px;
+          z-index: 2;
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .partner-icon {

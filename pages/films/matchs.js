@@ -57,7 +57,8 @@ export default function FilmsMatchs() {
             poster_path,
             release_date,
             vote_average,
-            genre_ids
+            genre_ids,
+            added_by
           )
         `
         )
@@ -70,30 +71,68 @@ export default function FilmsMatchs() {
         return;
       }
 
-      if (!swipes || swipes.length === 0) {
+      // Récupérer aussi les films ajoutés par les utilisateurs (considérés comme des swipes à droite)
+      const { data: addedMovies, error: addedError } = await supabase
+        .from("movies")
+        .select("*")
+        .neq("added_by", "system");
+
+      if (addedError) {
+        console.error("Erreur récupération films ajoutés:", addedError);
+      }
+
+      console.log("Swipes récupérés:", swipes);
+      console.log("Films ajoutés:", addedMovies);
+
+      // Créer un map des préférences utilisateur
+      const userPreferences = {
+        victor: new Set(),
+        alyssia: new Set(),
+      };
+
+      // Ajouter les swipes à droite
+      swipes.forEach((swipe) => {
+        if (swipe.movies) {
+          userPreferences[swipe.user_id].add(swipe.movie_id);
+        }
+      });
+
+      // Ajouter les films ajoutés par les utilisateurs (considérés comme des swipes à droite)
+      if (addedMovies) {
+        addedMovies.forEach((movie) => {
+          if (movie.added_by && movie.added_by !== "system") {
+            userPreferences[movie.added_by].add(movie.id);
+          }
+        });
+      }
+
+      console.log("Préférences utilisateurs:", userPreferences);
+
+      // Trouver les films en commun
+      const victorMovies = userPreferences.victor;
+      const alyssiaMovies = userPreferences.alyssia;
+      const commonMovieIds = new Set();
+
+      victorMovies.forEach((movieId) => {
+        if (alyssiaMovies.has(movieId)) {
+          commonMovieIds.add(movieId);
+        }
+      });
+
+      console.log("Films en commun:", commonMovieIds);
+
+      // Récupérer les détails des films en commun
+      const { data: matchedMoviesData, error: moviesError } = await supabase
+        .from("movies")
+        .select("*")
+        .in("id", Array.from(commonMovieIds));
+
+      if (moviesError) {
+        console.error("Erreur récupération films matchés:", moviesError);
         setMatchedMovies([]);
         setLoading(false);
         return;
       }
-
-      // Grouper par film et vérifier les matchs
-      const movieGroups = {};
-      swipes.forEach((swipe) => {
-        if (swipe.movies && !movieGroups[swipe.movie_id]) {
-          movieGroups[swipe.movie_id] = {
-            movie: swipe.movies,
-            users: [],
-          };
-        }
-        if (movieGroups[swipe.movie_id]) {
-          movieGroups[swipe.movie_id].users.push(swipe.user_id);
-        }
-      });
-
-      // Filtrer les films avec les deux utilisateurs
-      const matched = Object.values(movieGroups)
-        .filter((group) => group.users.length === 2)
-        .map((group) => group.movie);
 
       // Récupérer les statuts "vu" pour chaque film
       const { data: watchedMovies, error: watchedError } = await supabase
@@ -108,11 +147,12 @@ export default function FilmsMatchs() {
       const watchedMovieIds = watchedMovies?.map((w) => w.movie_id) || [];
 
       // Ajouter le statut "vu" à chaque film
-      const moviesWithWatchedStatus = matched.map((movie) => ({
+      const moviesWithWatchedStatus = matchedMoviesData.map((movie) => ({
         ...movie,
         is_watched: watchedMovieIds.includes(movie.id),
       }));
 
+      console.log("Films matchés finaux:", moviesWithWatchedStatus);
       setMatchedMovies(moviesWithWatchedStatus);
     } catch (error) {
       console.error("Erreur fetchMatchedMovies:", error);
@@ -191,6 +231,12 @@ export default function FilmsMatchs() {
       {/* Header */}
       <div className="matchs-header">
         <div className="header-content">
+          <button
+            className="back-button-header"
+            onClick={() => router.push("/films")}
+          >
+            <span className="back-icon">←</span>
+          </button>
           <div className="header-icon">💕</div>
           <h1 className="header-title">Matchs Films</h1>
           <p className="header-subtitle">Vos films en commun</p>
@@ -241,15 +287,17 @@ export default function FilmsMatchs() {
                 <div className="match-info">
                   <h3 className="match-title">{movie.title}</h3>
 
-                  <div className="match-genres">
-                    {getGenres(movie.genre_ids)
-                      .slice(0, 2)
-                      .map((genre, index) => (
-                        <span key={index} className="genre-tag">
-                          {genre}
-                        </span>
-                      ))}
-                  </div>
+                  {movie.genre_ids && movie.genre_ids.length > 0 && (
+                    <div className="match-genres">
+                      {getGenres(movie.genre_ids)
+                        .slice(0, 2)
+                        .map((genre, index) => (
+                          <span key={index} className="genre-tag">
+                            {genre}
+                          </span>
+                        ))}
+                    </div>
+                  )}
 
                   {movie.release_date && (
                     <p className="match-year">
@@ -272,6 +320,16 @@ export default function FilmsMatchs() {
                         ? `${movie.overview.substring(0, 100)}...`
                         : movie.overview}
                     </p>
+                  )}
+
+                  {/* Indicateur pour les films ajoutés par un utilisateur */}
+                  {movie.added_by && movie.added_by !== "system" && (
+                    <div className="added-by-info">
+                      <span className="added-by-icon">💝</span>
+                      <span className="added-by-text">
+                        Ajouté par {displayUserName(movie.added_by)}
+                      </span>
+                    </div>
                   )}
 
                   {!movie.is_watched && (
@@ -328,6 +386,38 @@ export default function FilmsMatchs() {
         .header-content {
           max-width: 400px;
           margin: 0 auto;
+          position: relative;
+        }
+
+        .back-button-header {
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(255, 182, 219, 0.3);
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .back-button-header:hover {
+          background: rgba(255, 255, 255, 1);
+          transform: translateY(-50%) scale(1.1);
+          box-shadow: 0 4px 12px rgba(255, 182, 219, 0.4);
+        }
+
+        .back-icon {
+          color: #d0488f;
+          font-size: 20px;
+          font-weight: 700;
         }
 
         .header-icon {
@@ -550,6 +640,27 @@ export default function FilmsMatchs() {
           color: #4caf50;
           font-weight: 600;
           font-size: 14px;
+        }
+
+        .added-by-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 12px;
+          background: rgba(255, 182, 219, 0.1);
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 182, 219, 0.2);
+        }
+
+        .added-by-icon {
+          font-size: 14px;
+        }
+
+        .added-by-text {
+          color: #d0488f;
+          font-size: 12px;
+          font-weight: 600;
         }
 
         .toast {

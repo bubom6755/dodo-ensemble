@@ -246,6 +246,52 @@ export default function Agenda() {
     setEventToDelete(null);
   }
 
+  // Fonction pour valider un événement (pour le partenaire)
+  async function handleValidateEvent(action) {
+    if (!modalEvent) return;
+
+    let newStatus;
+    if (action === "validate") {
+      newStatus = true;
+    } else if (action === "reject") {
+      newStatus = false;
+    } else {
+      // Reset to pending
+      newStatus = null;
+    }
+
+    const { error } = await supabase
+      .from("events")
+      .update({ partner_validated: newStatus })
+      .eq("id", modalEvent.id);
+
+    if (error) {
+      showToast("Erreur lors de la validation", "#f44336");
+    } else {
+      closeEventModal();
+      fetchEvents();
+      let message;
+      if (action === "validate") {
+        message = "Événement validé ! ✨";
+      } else if (action === "reject") {
+        message = "Événement refusé ! ❌";
+      } else {
+        message = "Statut remis en attente ! ⏳";
+      }
+      showToast(message, "#4caf50");
+    }
+  }
+
+  // Fonction pour vérifier si l'utilisateur est le créateur de l'événement
+  function isEventCreator(event) {
+    return event.user_id === userId;
+  }
+
+  // Fonction pour obtenir le nom de l'autre utilisateur
+  function getOtherUserName() {
+    return userId === "victor" ? "Alyssia" : "Victor";
+  }
+
   // Groupe les événements par mois
   function groupEventsByMonth() {
     const grouped = {};
@@ -320,6 +366,25 @@ export default function Agenda() {
                     {event.time && (
                       <p className="timeline-time">⏰ {event.time}</p>
                     )}
+                    <div className="timeline-meta">
+                      <span className="event-creator">
+                        👤 {displayUserName(event.user_id)}
+                      </span>
+                      {!isEventCreator(event) &&
+                        event.partner_validated !== null && (
+                          <span
+                            className={`event-status ${
+                              event.partner_validated === true
+                                ? "validated"
+                                : "rejected"
+                            }`}
+                          >
+                            {event.partner_validated === true
+                              ? "✅ Validé"
+                              : "❌ Refusé"}
+                          </span>
+                        )}
+                    </div>
                     {event.is_mystery && (
                       <div className="timeline-mystery">🎭 Mystère</div>
                     )}
@@ -502,19 +567,106 @@ export default function Agenda() {
                 </div>
               )}
 
+              <div className="event-info">
+                <div className="event-creator-info">
+                  <span className="creator-label">Créé par :</span>
+                  <span className="creator-name">
+                    {displayUserName(modalEvent.user_id)}
+                  </span>
+                </div>
+                {!isEventCreator(modalEvent) && (
+                  <div className="event-validation-status">
+                    <span className="validation-label">Statut :</span>
+                    <span
+                      className={`validation-status ${
+                        modalEvent.partner_validated === null
+                          ? "pending"
+                          : modalEvent.partner_validated === true
+                          ? "validated"
+                          : "rejected"
+                      }`}
+                    >
+                      {modalEvent.partner_validated === null
+                        ? "⏳ En attente"
+                        : modalEvent.partner_validated === true
+                        ? "✅ Validé"
+                        : "❌ Refusé"}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <div className="event-actions">
-                <button
-                  className="action-button edit"
-                  onClick={handleEditEvent}
-                >
-                  ✏️ Modifier
-                </button>
-                <button
-                  className="action-button delete"
-                  onClick={handleDeleteEvent}
-                >
-                  🗑️ Supprimer
-                </button>
+                {/* Boutons pour le créateur de l'événement */}
+                {isEventCreator(modalEvent) ? (
+                  <>
+                    <button
+                      className="action-button edit"
+                      onClick={handleEditEvent}
+                    >
+                      ✏️ Modifier
+                    </button>
+                    <button
+                      className="action-button delete"
+                      onClick={handleDeleteEvent}
+                    >
+                      🗑️ Supprimer
+                    </button>
+                  </>
+                ) : (
+                  /* Boutons de validation pour le partenaire */
+                  <div className="partner-actions">
+                    {modalEvent.partner_validated === null ? (
+                      /* En attente - afficher Valider et Refuser */
+                      <>
+                        <button
+                          className="action-button validate"
+                          onClick={() => handleValidateEvent("validate")}
+                        >
+                          👍 Valider
+                        </button>
+                        <button
+                          className="action-button reject"
+                          onClick={() => handleValidateEvent("reject")}
+                        >
+                          ❌ Refuser
+                        </button>
+                      </>
+                    ) : modalEvent.partner_validated === true ? (
+                      /* Validé - afficher Refuser et Remettre en attente */
+                      <>
+                        <button
+                          className="action-button reject"
+                          onClick={() => handleValidateEvent("reject")}
+                        >
+                          ❌ Refuser
+                        </button>
+                        <button
+                          className="action-button pending"
+                          onClick={() => handleValidateEvent("pending")}
+                        >
+                          ⏳ Remettre en attente
+                        </button>
+                      </>
+                    ) : (
+                      /* Refusé - afficher Valider et Remettre en attente */
+                      <>
+                        <button
+                          className="action-button validate"
+                          onClick={() => handleValidateEvent("validate")}
+                        >
+                          👍 Valider
+                        </button>
+                        <button
+                          className="action-button pending"
+                          onClick={() => handleValidateEvent("pending")}
+                        >
+                          ⏳ Remettre en attente
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -724,6 +876,46 @@ export default function Agenda() {
           color: #b86fa5;
           font-size: 14px;
           margin: 0;
+        }
+
+        .timeline-meta {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 8px;
+          color: #b86fa5;
+          font-size: 13px;
+        }
+
+        .event-creator {
+          font-weight: 600;
+          color: #d0488f;
+        }
+
+        .event-validated {
+          background: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 8px;
+          display: inline-block;
+        }
+
+        .event-status {
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 8px;
+          display: inline-block;
+        }
+
+        .event-status.validated {
+          background: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+        }
+
+        .event-status.rejected {
+          background: rgba(244, 67, 54, 0.1);
+          color: #f44336;
         }
 
         .timeline-mystery {
@@ -1017,6 +1209,67 @@ export default function Agenda() {
           font-weight: 600;
         }
 
+        .event-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 182, 219, 0.2);
+        }
+
+        .event-creator-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .creator-label {
+          color: #b86fa5;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .creator-name {
+          color: #d0488f;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .event-validation-status {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .validation-label {
+          color: #b86fa5;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .validation-status {
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+
+        .validation-status.validated {
+          background: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+        }
+
+        .validation-status.pending {
+          background: rgba(255, 182, 219, 0.1);
+          color: #d0488f;
+        }
+
+        .validation-status.rejected {
+          background: rgba(244, 67, 54, 0.1);
+          color: #f44336;
+        }
+
         .event-actions {
           display: flex;
           gap: 12px;
@@ -1044,6 +1297,42 @@ export default function Agenda() {
           background: rgba(244, 67, 54, 0.1);
           color: #f44336;
           border: 1px solid rgba(244, 67, 54, 0.2);
+        }
+
+        .action-button.validate {
+          background: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+          border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .action-button.validate.validated {
+          background: rgba(76, 175, 80, 0.2);
+          color: #4caf50;
+          border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .action-button.reject {
+          background: rgba(244, 67, 54, 0.1);
+          color: #f44336;
+          border: 1px solid rgba(244, 67, 54, 0.2);
+        }
+
+        .action-button.pending {
+          background: rgba(255, 152, 0, 0.1);
+          color: #ff9800;
+          border: 1px solid rgba(255, 152, 0, 0.2);
+        }
+
+        .partner-actions {
+          display: flex;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .partner-actions .action-button {
+          flex: 1;
+          font-size: 13px;
+          padding: 10px 12px;
         }
 
         .action-button:hover {

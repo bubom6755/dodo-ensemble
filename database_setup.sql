@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS events (
     location VARCHAR(255),
     is_mystery BOOLEAN DEFAULT FALSE,
     user_id VARCHAR(50) NOT NULL,
+    partner_validated BOOLEAN,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_is_mystery ON events(is_mystery);
+CREATE INDEX IF NOT EXISTS idx_events_partner_validated ON events(partner_validated);
 
 -- Trigger pour mettre à jour updated_at automatiquement
 CREATE TRIGGER update_events_updated_at
@@ -56,6 +58,9 @@ CREATE TRIGGER update_events_updated_at
 
 -- Si la table events existe déjà, ajouter la colonne is_mystery
 ALTER TABLE events ADD COLUMN IF NOT EXISTS is_mystery BOOLEAN DEFAULT FALSE;
+
+-- Si la table events existe déjà, ajouter la colonne partner_validated
+ALTER TABLE events ADD COLUMN IF NOT EXISTS partner_validated BOOLEAN DEFAULT FALSE;
 
 -- Table pour les histoires/souvenirs
 CREATE TABLE IF NOT EXISTS stories (
