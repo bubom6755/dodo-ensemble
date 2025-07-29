@@ -3,70 +3,6 @@ import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 import BottomNavigation from "../components/BottomNavigation";
 
-// Réutilisation des styles constants
-const mobileMainBg = {
-  minHeight: "100vh",
-  background: "linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)",
-  padding: "0 8px",
-  boxSizing: "border-box",
-  maxWidth: 420,
-  width: "100%",
-  margin: "0 auto",
-};
-
-const mobileCard = {
-  background: "#ffffff",
-  borderRadius: 20,
-  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)",
-  padding: 24,
-  margin: "24px 0",
-  width: "100%",
-  maxWidth: 480,
-  marginLeft: "auto",
-  marginRight: "auto",
-  boxSizing: "border-box",
-  transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out",
-};
-
-const bigBtn = {
-  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)",
-  color: "#fff",
-  border: "none",
-  borderRadius: 36,
-  fontSize: 18,
-  fontWeight: 700,
-  padding: "1rem 2rem",
-  margin: "8px 0",
-  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)",
-  cursor: "pointer",
-  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out",
-  outline: "none",
-};
-
-const modalOverlay = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  background: "rgba(0,0,0,0.25)",
-  zIndex: 1000,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backdropFilter: "blur(4px)",
-};
-
-const modalBox = {
-  background: "#ffffff",
-  borderRadius: 20,
-  boxShadow: "0 10px 40px rgba(184, 111, 165, 0.3)",
-  padding: 36,
-  minWidth: 340,
-  maxWidth: 400,
-  zIndex: 1001,
-};
-
 export default function Agenda() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
@@ -90,7 +26,10 @@ export default function Agenda() {
   const [eventResponses, setEventResponses] = useState([]);
   const [eventComment, setEventComment] = useState("");
   const [toast, setToast] = useState(null);
-  const [viewMode, setViewMode] = useState("calendar"); // "calendar" ou "list"
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
 
   // Fonction utilitaire pour afficher une notification
   function showToast(message, color = "#d0488f") {
@@ -111,18 +50,16 @@ export default function Agenda() {
 
   useEffect(() => {
     fetchEvents();
-  }, [calendarMonth]);
+  }, []);
 
   async function fetchEvents() {
-    const start = new Date(calendarMonth);
-    const end = new Date(calendarMonth);
-    end.setMonth(end.getMonth() + 1);
+    const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .gte("date", start.toISOString().split("T")[0])
-      .lt("date", end.toISOString().split("T")[0])
-      .order("date", { ascending: true });
+      .gte("date", today)
+      .order("date", { ascending: true })
+      .order("time", { ascending: true });
     if (!error) setEvents(data || []);
   }
 
@@ -140,6 +77,7 @@ export default function Agenda() {
         weekday: "long",
         day: "numeric",
         month: "long",
+        year: "numeric",
       })
       .replace(/^(.)/, (c) => c.toUpperCase());
   }
@@ -148,6 +86,24 @@ export default function Agenda() {
     if (userId === "victor") return "Victor";
     if (userId === "alyssia") return "Alyssia";
     return userId;
+  }
+
+  // Fonction pour vérifier si un événement mystère est passé et doit être dévoilé
+  function isMysteryEventRevealed(event) {
+    if (!event.is_mystery) return false;
+
+    const now = new Date();
+    const eventDateTime = new Date(event.date);
+
+    if (event.time) {
+      const [hours, minutes] = event.time.split(":");
+      eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    } else {
+      // Si pas d'heure, on considère 18h00 par défaut
+      eventDateTime.setHours(18, 0, 0, 0);
+    }
+
+    return now >= eventDateTime;
   }
 
   function openEventModal(event) {
@@ -176,10 +132,16 @@ export default function Agenda() {
   function closeEventForm() {
     setShowEventForm(false);
     setEventFormError("");
+    setIsEditing(false);
+    setEditingEventId(null);
   }
 
   function handleEventFormChange(e) {
-    setEventForm({ ...eventForm, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setEventForm({
+      ...eventForm,
+      [name]: type === "checkbox" ? checked : value,
+    });
   }
 
   async function submitEventForm(e) {
@@ -188,7 +150,8 @@ export default function Agenda() {
       setEventFormError("Titre et date obligatoires");
       return;
     }
-    const { error } = await supabase.from("events").upsert({
+
+    const eventData = {
       date: eventForm.date,
       title: eventForm.title,
       description: eventForm.description,
@@ -196,1083 +159,283 @@ export default function Agenda() {
       location: eventForm.location,
       is_mystery: eventForm.is_mystery,
       user_id: userId,
-    });
+    };
+
+    // Si on est en mode édition, ajouter l'ID de l'événement
+    if (isEditing && editingEventId) {
+      eventData.id = editingEventId;
+    }
+
+    const { error } = await supabase.from("events").upsert(eventData);
+
     if (error) {
       setEventFormError("Erreur lors de l'enregistrement");
     } else {
       setShowEventForm(false);
+      setIsEditing(false);
+      setEditingEventId(null);
       fetchEvents();
       showToast(
-        eventForm.is_mystery
+        isEditing
+          ? eventForm.is_mystery
+            ? "Événement mystère modifié ! 🎭"
+            : "Événement modifié avec succès ! ✨"
+          : eventForm.is_mystery
           ? "Événement mystère créé ! 🎭"
-          : "Événement créé !"
+          : "Événement créé avec succès ! ✨"
       );
     }
   }
 
-  // Génération du calendrier
-  function getMonthDays(year, month) {
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const days = [];
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      days.push(new Date(year, month, i));
+  // Fonction pour modifier un événement
+  async function handleEditEvent() {
+    if (!modalEvent) return;
+
+    // Pré-remplir le formulaire avec les données de l'événement
+    setEventForm({
+      date: modalEvent.date,
+      title: modalEvent.title,
+      description: modalEvent.description || "",
+      time: modalEvent.time || "",
+      location: modalEvent.location || "",
+      is_mystery: modalEvent.is_mystery || false,
+    });
+
+    // Marquer comme en mode édition
+    setIsEditing(true);
+    setEditingEventId(modalEvent.id);
+
+    // Fermer la modal de détails et ouvrir le formulaire de modification
+    closeEventModal();
+    setShowEventForm(true);
+    setEventFormError("");
+  }
+
+  // Fonction pour supprimer un événement
+  async function handleDeleteEvent() {
+    if (!modalEvent) return;
+
+    // Ouvrir le modal de confirmation
+    setEventToDelete(modalEvent);
+    setShowDeleteModal(true);
+  }
+
+  // Fonction pour confirmer la suppression
+  async function confirmDeleteEvent() {
+    if (!eventToDelete) return;
+
+    const { error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", eventToDelete.id);
+
+    if (error) {
+      showToast("Erreur lors de la suppression", "#f44336");
+    } else {
+      closeEventModal();
+      setShowDeleteModal(false);
+      setEventToDelete(null);
+      fetchEvents();
+      showToast("Événement supprimé avec succès !", "#4caf50");
     }
-    return days;
   }
 
-  const monthDays = getMonthDays(
-    calendarMonth.getFullYear(),
-    calendarMonth.getMonth()
-  );
-  const firstWeekday = (calendarMonth.getDay() + 6) % 7; // Lundi=0
-  const todayStr = toLocalDateString(new Date());
-  const eventsByDate = {};
-  for (const ev of events) {
-    eventsByDate[ev.date] = ev;
+  // Fonction pour annuler la suppression
+  function cancelDeleteEvent() {
+    setShowDeleteModal(false);
+    setEventToDelete(null);
   }
 
-  // Tri des événements par date pour la vue liste
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  );
+  // Groupe les événements par mois
+  function groupEventsByMonth() {
+    const grouped = {};
+    events.forEach((event) => {
+      const monthKey = new Date(event.date).toLocaleDateString("fr-FR", {
+        month: "long",
+        year: "numeric",
+      });
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey].push(event);
+    });
+    return grouped;
+  }
+
+  const groupedEvents = groupEventsByMonth();
 
   return (
-    <div style={mobileMainBg}>
+    <div className="agenda-container">
+      {/* Header élégant */}
+      <div className="agenda-header">
+        <div className="header-content">
+          <div className="header-icon">📅</div>
+          <h1 className="header-title">Notre Agenda</h1>
+          <p className="header-subtitle">Gérez nos événements ensemble</p>
+        </div>
+      </div>
+
+      {/* Bouton d'ajout flottant */}
+      <button
+        className="add-event-button"
+        onClick={() => openEventForm(toLocalDateString(new Date()))}
+      >
+        <div className="add-button-content">
+          <span className="add-icon">+</span>
+        </div>
+      </button>
+
+      {/* Contenu principal - Timeline uniquement */}
+      <div className="agenda-content">
+        <div className="timeline-view">
+          {events.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📅</div>
+              <h3 className="empty-title">Aucun événement à venir</h3>
+              <p className="empty-text">Créez votre premier événement !</p>
+            </div>
+          ) : (
+            <div className="timeline">
+              {events.map((event, index) => (
+                <div
+                  key={event.id}
+                  className={`timeline-item ${
+                    event.is_mystery ? "mystery" : ""
+                  }`}
+                  onClick={() => openEventModal(event)}
+                >
+                  <div className="timeline-dot"></div>
+                  <div className="timeline-content">
+                    <div className="timeline-date">
+                      {new Date(event.date).getDate()}{" "}
+                      {new Date(event.date).toLocaleDateString("fr-FR", {
+                        month: "short",
+                      })}
+                    </div>
+                    <h3 className="timeline-title">
+                      {event.is_mystery && !isMysteryEventRevealed(event)
+                        ? "Événement mystère"
+                        : event.title}
+                    </h3>
+                    {event.time && (
+                      <p className="timeline-time">⏰ {event.time}</p>
+                    )}
+                    {event.is_mystery && (
+                      <div className="timeline-mystery">🎭 Mystère</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Toast notifications */}
       {toast && (
-        <div
-          style={{
-            position: "fixed",
-            top: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#ffebee",
-            color: "#d0488f",
-            border: "1.5px solid #ffcdd2",
-            borderRadius: 12,
-            padding: "12px 32px",
-            fontWeight: 600,
-            fontSize: 17,
-            boxShadow: "0 4px 16px rgba(255, 200, 220, 0.4)",
-            zIndex: 2000,
-          }}
-        >
+        <div className="toast" style={{ color: toast.color }}>
           {toast.message}
         </div>
       )}
 
-      <main
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          margin: "auto",
-          padding: 0,
-          fontFamily: "sans-serif",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          boxSizing: "border-box",
-          paddingBottom: 100, // Espace pour la navigation
-        }}
-      >
-        {/* Header avec titre et boutons de vue */}
-        <div style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}>
-          <h1
-            style={{ color: "#ff4081", fontSize: 28, margin: "18px 0 24px 0" }}
-          >
-            📅 Agenda
-          </h1>
-
-          {/* Boutons de vue */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 16,
-                padding: "0.8rem 1.5rem",
-                background:
-                  viewMode === "calendar" ? bigBtn.background : "#fff",
-                color: viewMode === "calendar" ? "#fff" : "#ff4081",
-                border:
-                  viewMode === "calendar" ? "none" : "1.5px solid #ff80ab",
-              }}
-              onClick={() => setViewMode("calendar")}
-            >
-              📅 Calendrier
-            </button>
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 16,
-                padding: "0.8rem 1.5rem",
-                background: viewMode === "list" ? bigBtn.background : "#fff",
-                color: viewMode === "list" ? "#fff" : "#ff4081",
-                border: viewMode === "list" ? "none" : "1.5px solid #ff80ab",
-              }}
-              onClick={() => setViewMode("list")}
-            >
-              📋 Liste
-            </button>
-          </div>
-
-          {/* Navigation du mois */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 20,
-              color: "#ff4081",
-              fontWeight: 700,
-              fontSize: 20,
-            }}
-          >
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 16,
-                padding: "0.3rem 1rem",
-                margin: 0,
-                background: "#fce4ec",
-                color: "#ff80ab",
-                boxShadow: "none",
-                border: "1px solid #ffcdd2",
-              }}
-              onClick={() =>
-                setCalendarMonth(
-                  new Date(
-                    calendarMonth.getFullYear(),
-                    calendarMonth.getMonth() - 1,
-                    1
-                  )
-                )
-              }
-            >
-              ◀
-            </button>
-            <span style={{ fontWeight: 700, fontSize: 18, color: "#ff4081" }}>
-              {calendarMonth.toLocaleString("fr-FR", {
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 16,
-                padding: "0.3rem 1rem",
-                margin: 0,
-                background: "#fce4ec",
-                color: "#ff80ab",
-                boxShadow: "none",
-                border: "1px solid #ffcdd2",
-              }}
-              onClick={() =>
-                setCalendarMonth(
-                  new Date(
-                    calendarMonth.getFullYear(),
-                    calendarMonth.getMonth() + 1,
-                    1
-                  )
-                )
-              }
-            >
-              ▶
-            </button>
-          </div>
-        </div>
-
-        {/* Vue Calendrier */}
-        {viewMode === "calendar" && (
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 20,
-              boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)",
-              padding: 28,
-              margin: "0 auto",
-              maxWidth: 420,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
-                gap: 4,
-              }}
-            >
-              {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    fontWeight: 600,
-                    color: "#ff80ab",
-                    padding: 4,
-                    textAlign: "center",
-                  }}
-                >
-                  {d}
-                </div>
-              ))}
-              {Array(firstWeekday)
-                .fill(0)
-                .map((_, i) => (
-                  <div key={"empty-" + i}></div>
-                ))}
-              {monthDays.map((d) => {
-                const dateStr = toLocalDateString(d);
-                const isToday = dateStr === todayStr;
-                const hasEvent = !!eventsByDate[dateStr];
-                const event = eventsByDate[dateStr];
-                const isMystery = event?.is_mystery;
-                const isPast =
-                  new Date(dateStr) < new Date().setHours(0, 0, 0, 0);
-
-                return (
-                  <div
-                    key={dateStr}
-                    style={{
-                      minHeight: 52,
-                      borderRadius: 10,
-                      background: isToday
-                        ? "#fff0fa"
-                        : hasEvent
-                        ? isMystery && !isPast
-                          ? "#f0f8ff" // Bleu clair pour mystère
-                          : "#ffebee"
-                        : "#fefefe",
-                      textAlign: "center",
-                      fontSize: 17,
-                      color: isToday
-                        ? "#d0488f"
-                        : hasEvent
-                        ? isMystery && !isPast
-                          ? "#2196f3" // Bleu pour mystère
-                          : "#d0488f"
-                        : "#888",
-                      cursor: "pointer",
-                      position: "relative",
-                      transition:
-                        "background 0.2s ease-in-out, transform 0.1s ease-out",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexDirection: "column",
-                      fontWeight: isToday || hasEvent ? 700 : 500,
-                      border: isToday
-                        ? "2px solid #ff80ab"
-                        : hasEvent
-                        ? isMystery && !isPast
-                          ? "1.5px solid #90caf9" // Bordure bleue pour mystère
-                          : "1.5px solid #ffcdd2"
-                        : "none",
-                    }}
-                    onClick={() =>
-                      hasEvent
-                        ? openEventModal(eventsByDate[dateStr])
-                        : openEventForm(dateStr)
-                    }
-                    title={
-                      hasEvent
-                        ? isMystery && !isPast
-                          ? "🎭 Événement mystère"
-                          : eventsByDate[dateStr].title
-                        : "Ajouter un événement"
-                    }
-                    onMouseEnter={(e) => {
-                      if (!isToday && !hasEvent) {
-                        e.currentTarget.style.background = "#fff0fa";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                      } else if (hasEvent) {
-                        e.currentTarget.style.transform = "scale(1.03)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isToday && !hasEvent) {
-                        e.currentTarget.style.background = "#fefefe";
-                        e.currentTarget.style.transform = "none";
-                      } else if (hasEvent) {
-                        e.currentTarget.style.transform = "none";
-                      }
-                    }}
-                  >
-                    {d.getDate()}
-                    {hasEvent && (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 4,
-                          background:
-                            isMystery && !isPast ? "#2196f3" : "#ff4081",
-                          position: "absolute",
-                          left: "50%",
-                          bottom: 8,
-                          transform: "translateX(-50%)",
-                        }}
-                      ></div>
-                    )}
-                    {isMystery && !isPast && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 4,
-                          right: 4,
-                          fontSize: 12,
-                          color: "#2196f3",
-                        }}
-                      >
-                        🎭
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Vue Liste */}
-        {viewMode === "list" && (
-          <div style={{ marginBottom: 20 }}>
-            {sortedEvents.length === 0 ? (
-              <div style={{ ...mobileCard, textAlign: "center" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-                <h3 style={{ color: "#ff4081", marginBottom: 8 }}>
-                  Aucun événement
-                </h3>
-                <p style={{ color: "#888", marginBottom: 20 }}>
-                  Aucun événement prévu pour ce mois
-                </p>
-                <button style={bigBtn} onClick={() => openEventForm(todayStr)}>
-                  Créer un événement
-                </button>
-              </div>
-            ) : (
-              sortedEvents.map((event) => {
-                const isMystery = event.is_mystery;
-                const isPast =
-                  new Date(event.date) < new Date().setHours(0, 0, 0, 0);
-                const shouldShowMystery = isMystery && !isPast;
-
-                return (
-                  <div
-                    key={event.id}
-                    style={{
-                      ...mobileCard,
-                      cursor: "pointer",
-                      transition: "transform 0.2s ease-out",
-                      border: shouldShowMystery ? "2px solid #90caf9" : "none",
-                      background: shouldShowMystery ? "#f0f8ff" : "#ffffff",
-                    }}
-                    onClick={() => openEventModal(event)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "none";
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 16,
-                      }}
-                    >
-                      <div
-                        style={{
-                          background: shouldShowMystery
-                            ? "linear-gradient(135deg, #90caf9 0%, #2196f3 100%)"
-                            : "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                          borderRadius: 12,
-                          padding: "12px",
-                          color: "white",
-                          fontSize: 20,
-                          minWidth: 48,
-                          textAlign: "center",
-                        }}
-                      >
-                        {shouldShowMystery ? "🎭" : "📅"}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h3
-                          style={{
-                            color: shouldShowMystery ? "#2196f3" : "#d0488f",
-                            fontSize: 18,
-                            fontWeight: 700,
-                            margin: "0 0 8px 0",
-                          }}
-                        >
-                          {shouldShowMystery
-                            ? "🎭 Événement mystère"
-                            : event.title}
-                        </h3>
-                        <p
-                          style={{
-                            color: shouldShowMystery ? "#1976d2" : "#b86fa5",
-                            fontSize: 16,
-                            margin: "0 0 4px 0",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {formatDateFr(event.date)}
-                          {event.time && !shouldShowMystery && (
-                            <span style={{ marginLeft: 8, opacity: 0.8 }}>
-                              ⏰ {event.time}
-                            </span>
-                          )}
-                        </p>
-                        {event.location && !shouldShowMystery && (
-                          <p
-                            style={{
-                              color: "#888",
-                              fontSize: 14,
-                              margin: "4px 0",
-                            }}
-                          >
-                            📍 {event.location}
-                          </p>
-                        )}
-                        {event.description && !shouldShowMystery && (
-                          <p
-                            style={{
-                              color: "#666",
-                              fontSize: 14,
-                              margin: "8px 0 0 0",
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {event.description.length > 100
-                              ? event.description.substring(0, 100) + "..."
-                              : event.description}
-                          </p>
-                        )}
-                        {shouldShowMystery && (
-                          <p
-                            style={{
-                              color: "#2196f3",
-                              fontSize: 14,
-                              margin: "8px 0 0 0",
-                              fontStyle: "italic",
-                            }}
-                          >
-                            La surprise sera révélée le jour J ! ✨
-                          </p>
-                        )}
-                        <div
-                          style={{
-                            marginTop: 8,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 14,
-                              color: shouldShowMystery ? "#1976d2" : "#b86fa5",
-                              fontWeight: 600,
-                            }}
-                          >
-                            👤 {displayUserName(event.user_id)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* Bouton ajouter événement */}
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          <button
-            style={{
-              ...bigBtn,
-              fontSize: 16,
-              padding: "1rem 2rem",
-              background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)",
-            }}
-            onClick={() => openEventForm(todayStr)}
-          >
-            ➕ Ajouter un événement
-          </button>
-        </div>
-      </main>
-
-      {/* Modal détails événement */}
-      {showEventModal && modalEvent && (
-        <div style={modalOverlay} onClick={closeEventModal}>
-          <div
-            style={{
-              ...modalBox,
-              maxWidth: 420,
-              padding: 0,
-              overflow: "hidden",
-              boxShadow: "0 8px 40px rgba(184, 111, 165, 0.5)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {(() => {
-              const isMystery = modalEvent.is_mystery;
-              const isPast =
-                new Date(modalEvent.date) < new Date().setHours(0, 0, 0, 0);
-              const shouldShowMystery = isMystery && !isPast;
-
-              return (
-                <>
-                  <div
-                    style={{
-                      background: shouldShowMystery
-                        ? "linear-gradient(90deg, #e3f2fd 0%, #fff 100%)"
-                        : "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
-                      padding: "24px 32px 18px 32px",
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                      borderBottom: "1px solid #f3d6e7",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 32,
-                        color: shouldShowMystery ? "#2196f3" : "#d0488f",
-                      }}
-                    >
-                      {shouldShowMystery ? "🎭" : "📅"}
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 22,
-                          color: shouldShowMystery ? "#2196f3" : "#d0488f",
-                          marginBottom: 2,
-                        }}
-                      >
-                        {shouldShowMystery
-                          ? "🎭 Événement mystère"
-                          : modalEvent.title}
-                      </div>
-                      <div
-                        style={{
-                          color: shouldShowMystery ? "#1976d2" : "#b86fa5",
-                          fontSize: 16,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {modalEvent.date}{" "}
-                        {modalEvent.time && !shouldShowMystery && (
-                          <span style={{ marginLeft: 8 }}>
-                            ⏰ {modalEvent.time}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={closeEventModal}
-                      style={{
-                        marginLeft: "auto",
-                        background: "none",
-                        border: "none",
-                        fontSize: 26,
-                        color: shouldShowMystery ? "#2196f3" : "#b86fa5",
-                        cursor: "pointer",
-                        padding: 0,
-                        lineHeight: 1,
-                        transition: "color 0.15s",
-                      }}
-                      title="Fermer"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div style={{ padding: "22px 32px 18px 32px" }}>
-                    {shouldShowMystery ? (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          padding: "32px 16px",
-                          background: "#f0f8ff",
-                          borderRadius: 12,
-                          border: "2px solid #90caf9",
-                          marginBottom: 20,
-                        }}
-                      >
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>🎭</div>
-                        <h3
-                          style={{
-                            color: "#2196f3",
-                            fontSize: 20,
-                            fontWeight: 700,
-                            margin: "0 0 12px 0",
-                          }}
-                        >
-                          Événement mystère !
-                        </h3>
-                        <p
-                          style={{
-                            color: "#1976d2",
-                            fontSize: 16,
-                            lineHeight: 1.5,
-                            margin: 0,
-                          }}
-                        >
-                          La surprise sera révélée le{" "}
-                          {formatDateFr(modalEvent.date)} ! ✨
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {modalEvent.location && (
-                          <div
-                            style={{
-                              color: "#b86fa5",
-                              fontSize: 16,
-                              marginBottom: 10,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                            }}
-                          >
-                            <span style={{ fontSize: 20 }}>📍</span>
-                            <span>{modalEvent.location}</span>
-                          </div>
-                        )}
-                        {modalEvent.description && (
-                          <div
-                            style={{
-                              color: "#444",
-                              fontSize: 16,
-                              marginBottom: 18,
-                              background: "#fff8fc",
-                              borderRadius: 8,
-                              padding: "12px 14px",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontWeight: 500,
-                                color: "#b86fa5",
-                                marginRight: 8,
-                              }}
-                            >
-                              📝
-                            </span>
-                            {modalEvent.description}
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <div
-                      style={{
-                        borderTop: "1px solid #f3d6e7",
-                        margin: "18px 0 0 0",
-                        paddingTop: 12,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: 18, color: "#b86fa5" }}>👤</span>
-                      <span style={{ color: "#b86fa5", fontWeight: 600 }}>
-                        Créé par {displayUserName(modalEvent.user_id)}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Formulaire ajout événement */}
+      {/* Modal de création d'événement */}
       {showEventForm && (
-        <div style={modalOverlay} onClick={closeEventForm}>
-          <div
-            style={{
-              ...modalBox,
-              maxWidth: 450,
-              padding: 0,
-              overflow: "hidden",
-              borderRadius: 24,
-              boxShadow: "0 20px 60px rgba(184, 111, 165, 0.4)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header du modal */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                padding: "24px 32px 20px 32px",
-                color: "white",
-                textAlign: "center",
-                position: "relative",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: 24,
-                  fontWeight: 700,
-                  margin: "0 0 8px 0",
-                  color: "white",
-                }}
-              >
-                ✨ Nouvel événement
+        <div className="modal-overlay" onClick={closeEventForm}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">✨</div>
+              <h2 className="modal-title">
+                {isEditing ? "Modifier l'événement" : "Nouvel événement"}
               </h2>
-              <p
-                style={{
-                  fontSize: 16,
-                  opacity: 0.9,
-                  margin: 0,
-                  color: "white",
-                }}
-              >
-                {formatDateFr(eventForm.date)}
-              </p>
-              <button
-                onClick={closeEventForm}
-                style={{
-                  position: "absolute",
-                  top: 20,
-                  right: 20,
-                  background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 36,
-                  height: 36,
-                  fontSize: 20,
-                  color: "white",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.3)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
-                }
-                title="Fermer"
-              >
-                ×
-              </button>
             </div>
 
-            {/* Contenu du formulaire */}
-            <form onSubmit={submitEventForm} style={{ padding: "32px" }}>
-              {/* Titre */}
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    fontWeight: 600,
-                    color: "#d0488f",
-                    marginBottom: 8,
-                    display: "block",
-                    fontSize: 16,
-                  }}
-                >
-                  📝 Titre de l'événement
-                </label>
+            <form className="modal-form" onSubmit={submitEventForm}>
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={eventForm.date}
+                  onChange={handleEventFormChange}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Titre</label>
                 <input
                   type="text"
                   name="title"
                   value={eventForm.title}
                   onChange={handleEventFormChange}
-                  placeholder="Ex: Dîner romantique, Sortie cinéma..."
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "2px solid #ffd6ef",
-                    fontSize: 16,
-                    background: "#fff8fc",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#ff4081";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="form-input"
+                  placeholder="Titre de l'événement"
                   required
                 />
               </div>
 
-              {/* Heure */}
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    fontWeight: 600,
-                    color: "#d0488f",
-                    marginBottom: 8,
-                    display: "block",
-                    fontSize: 16,
-                  }}
-                >
-                  ⏰ Heure
-                </label>
+              <div className="form-group">
+                <label className="form-label">Heure</label>
                 <input
                   type="time"
                   name="time"
                   value={eventForm.time}
                   onChange={handleEventFormChange}
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "2px solid #ffd6ef",
-                    fontSize: 16,
-                    background: "#fff8fc",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#ff4081";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="form-input"
                 />
               </div>
 
-              {/* Lieu */}
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    fontWeight: 600,
-                    color: "#d0488f",
-                    marginBottom: 8,
-                    display: "block",
-                    fontSize: 16,
-                  }}
-                >
-                  📍 Lieu
-                </label>
+              <div className="form-group">
+                <label className="form-label">Lieu</label>
                 <input
                   type="text"
                   name="location"
                   value={eventForm.location}
                   onChange={handleEventFormChange}
-                  placeholder="Ex: Restaurant Le Petit Bistrot, Cinéma..."
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "2px solid #ffd6ef",
-                    fontSize: 16,
-                    background: "#fff8fc",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#ff4081";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="form-input"
+                  placeholder="Lieu de l'événement"
                 />
               </div>
 
-              {/* Description */}
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    fontWeight: 600,
-                    color: "#d0488f",
-                    marginBottom: 8,
-                    display: "block",
-                    fontSize: 16,
-                  }}
-                >
-                  💭 Description (optionnel)
-                </label>
+              <div className="form-group">
+                <label className="form-label">Description</label>
                 <textarea
                   name="description"
                   value={eventForm.description}
                   onChange={handleEventFormChange}
-                  placeholder="Ajoutez des détails sur l'événement..."
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "2px solid #ffd6ef",
-                    fontSize: 16,
-                    background: "#fff8fc",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    minHeight: 80,
-                    fontFamily: "inherit",
-                    resize: "vertical",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#ff4081";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(255, 64, 129, 0.1)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="form-textarea"
+                  placeholder="Description (optionnelle)"
                 />
               </div>
 
-              {/* Option Mystère */}
-              <div
-                style={{
-                  marginBottom: 32,
-                  padding: "16px",
-                  background: "#fff8fc",
-                  borderRadius: 12,
-                  border: "2px solid #ffd6ef",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    cursor: "pointer",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: "#d0488f",
-                  }}
-                >
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     name="is_mystery"
                     checked={eventForm.is_mystery}
-                    onChange={(e) =>
-                      setEventForm({
-                        ...eventForm,
-                        is_mystery: e.target.checked,
-                      })
-                    }
-                    style={{
-                      width: 20,
-                      height: 20,
-                      accentColor: "#ff4081",
-                    }}
+                    onChange={handleEventFormChange}
+                    className="form-checkbox"
                   />
-                  <span style={{ fontSize: 20 }}>🎭</span>
-                  <span>Événement mystère</span>
+                  <span className="checkbox-text">🎭 Événement mystère</span>
                 </label>
-                <p
-                  style={{
-                    margin: "8px 0 0 32px",
-                    fontSize: 14,
-                    color: "#666",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  L'événement sera caché jusqu'au jour J pour créer la surprise
-                  !
-                </p>
               </div>
 
-              {/* Message d'erreur */}
               {eventFormError && (
-                <div
-                  style={{
-                    color: "#e74c3c",
-                    marginBottom: 20,
-                    padding: "12px 16px",
-                    background: "#fdf2f2",
-                    borderRadius: 8,
-                    border: "1px solid #fecaca",
-                    fontSize: 14,
-                  }}
-                >
-                  ⚠️ {eventFormError}
-                </div>
+                <div className="form-error">{eventFormError}</div>
               )}
 
-              {/* Boutons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  justifyContent: "flex-end",
-                }}
-              >
+              <div className="form-actions">
                 <button
                   type="button"
+                  className="cancel-button"
                   onClick={closeEventForm}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: 12,
-                    border: "2px solid #ffd6ef",
-                    background: "#fff",
-                    color: "#ff4081",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#fff8fc";
-                    e.currentTarget.style.borderColor = "#ff80ab";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#fff";
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                  }}
                 >
                   Annuler
                 </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: "14px 32px",
-                    borderRadius: 12,
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                    color: "white",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    boxShadow: "0 4px 12px rgba(255, 64, 129, 0.3)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 16px rgba(255, 64, 129, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(255, 64, 129, 0.3)";
-                  }}
-                >
-                  ✨ Créer l'événement
+                <button type="submit" className="submit-button">
+                  {isEditing ? "Modifier l'événement" : "Créer l'événement"}
                 </button>
               </div>
             </form>
@@ -1280,8 +443,705 @@ export default function Agenda() {
         </div>
       )}
 
-      {/* Navigation en bas */}
+      {/* Modal de détails d'événement */}
+      {showEventModal && modalEvent && (
+        <div className="modal-overlay" onClick={closeEventModal}>
+          <div className="event-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="event-modal-header">
+              <div className="event-modal-icon">
+                {modalEvent.is_mystery ? "🎭" : "📅"}
+              </div>
+              <div className="event-modal-info">
+                <h2 className="event-modal-title">
+                  {modalEvent.is_mystery && !isMysteryEventRevealed(modalEvent)
+                    ? "Événement mystère"
+                    : modalEvent.title}
+                </h2>
+                <p className="event-modal-date">
+                  {formatDateFr(modalEvent.date)}
+                  {modalEvent.time && ` • ${modalEvent.time}`}
+                </p>
+              </div>
+              <button className="close-button" onClick={closeEventModal}>
+                ×
+              </button>
+            </div>
+
+            <div className="event-modal-content">
+              {modalEvent.location &&
+                (!modalEvent.is_mystery ||
+                  isMysteryEventRevealed(modalEvent)) && (
+                  <div className="event-detail">
+                    <span className="detail-icon">📍</span>
+                    <span className="detail-text">{modalEvent.location}</span>
+                  </div>
+                )}
+
+              {modalEvent.description &&
+                (!modalEvent.is_mystery ||
+                  isMysteryEventRevealed(modalEvent)) && (
+                  <div className="event-detail">
+                    <span className="detail-icon">📝</span>
+                    <span className="detail-text">
+                      {modalEvent.description}
+                    </span>
+                  </div>
+                )}
+
+              {modalEvent.is_mystery && !isMysteryEventRevealed(modalEvent) && (
+                <div className="mystery-notice">
+                  🎭 Cet événement est un mystère ! Les détails ne seront
+                  révélés qu'au moment venu.
+                </div>
+              )}
+
+              {modalEvent.is_mystery && isMysteryEventRevealed(modalEvent) && (
+                <div className="mystery-revealed">
+                  🎉 Le mystère est révélé ! Voici tous les détails de
+                  l'événement.
+                </div>
+              )}
+
+              <div className="event-actions">
+                <button
+                  className="action-button edit"
+                  onClick={handleEditEvent}
+                >
+                  ✏️ Modifier
+                </button>
+                <button
+                  className="action-button delete"
+                  onClick={handleDeleteEvent}
+                >
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && eventToDelete && (
+        <div className="modal-overlay" onClick={cancelDeleteEvent}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">🗑️</div>
+              <h2 className="modal-title">Confirmation de suppression</h2>
+            </div>
+            <div className="modal-content">
+              <p>
+                T'es sûr de vouloir supprimer l'événement "{eventToDelete.title}
+                " du {formatDateFr(eventToDelete.date)} ?
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-button" onClick={cancelDeleteEvent}>
+                Annuler
+              </button>
+              <button className="submit-button" onClick={confirmDeleteEvent}>
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BottomNavigation activePage="agenda" />
+
+      <style jsx>{`
+        .agenda-container {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%);
+          position: relative;
+          overflow: hidden;
+          font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont,
+            sans-serif;
+          padding-bottom: 100px;
+        }
+
+        .agenda-header {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.8);
+          padding: 24px 24px 20px 24px;
+          text-align: center;
+          box-shadow: 0 2px 20px rgba(255, 214, 239, 0.3);
+        }
+
+        .header-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .header-icon {
+          font-size: 36px;
+          margin-bottom: 12px;
+        }
+
+        .header-title {
+          color: #d0488f;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 6px 0;
+          letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+          color: #b86fa5;
+          font-size: 14px;
+          margin: 0;
+          font-weight: 500;
+        }
+
+        .add-event-button {
+          position: fixed;
+          bottom: 100px;
+          right: 24px;
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #ff80ab 0%, #ff4081 100%);
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 4px 16px rgba(255, 64, 129, 0.4);
+          transition: all 0.3s ease;
+          z-index: 100;
+        }
+
+        .add-event-button:hover {
+          transform: scale(1.1);
+          box-shadow: 0 6px 20px rgba(255, 64, 129, 0.6);
+        }
+
+        .add-button-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+
+        .add-icon {
+          color: white;
+          font-size: 24px;
+          font-weight: 700;
+        }
+
+        .agenda-content {
+          max-width: 400px;
+          margin: 0 auto;
+          padding: 0 16px;
+          margin-top: 24px;
+        }
+
+        .timeline-view {
+          padding: 0 8px;
+        }
+
+        .timeline-month {
+          margin-bottom: 32px;
+        }
+
+        .timeline-month-title {
+          color: #d0488f;
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0 0 20px 0;
+          text-align: center;
+        }
+
+        .timeline {
+          position: relative;
+          padding-left: 16px;
+        }
+
+        .timeline::before {
+          content: "";
+          position: absolute;
+          left: 6px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(180deg, #ff80ab 0%, #ff4081 100%);
+        }
+
+        .timeline-item {
+          position: relative;
+          margin-bottom: 20px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+          transform: translateX(4px);
+        }
+
+        .timeline-dot {
+          position: absolute;
+          left: -17px;
+          top: 40%;
+          width: 12px;
+          height: 12px;
+          background: #ff4081;
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 2px 8px rgba(255, 64, 129, 0.3);
+        }
+
+        .timeline-item.mystery .timeline-dot {
+          background: #2196f3;
+        }
+
+        .timeline-content {
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 12px;
+          padding: 16px 20px;
+          border: 1px solid rgba(255, 182, 219, 0.2);
+          transition: all 0.3s ease;
+          margin-left: 8px;
+        }
+
+        .timeline-item:hover .timeline-content {
+          box-shadow: 0 4px 16px rgba(255, 182, 219, 0.3);
+        }
+
+        .timeline-date {
+          color: #ff4081;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .timeline-title {
+          color: #d0488f;
+          font-size: 16px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+
+        .timeline-time {
+          color: #b86fa5;
+          font-size: 14px;
+          margin: 0;
+        }
+
+        .timeline-mystery {
+          background: rgba(33, 150, 243, 0.1);
+          color: #1976d2;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 8px;
+          margin-top: 8px;
+          display: inline-block;
+        }
+
+        .toast {
+          position: fixed;
+          top: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 182, 219, 0.3);
+          border-radius: 12px;
+          padding: 12px 24px;
+          font-weight: 600;
+          font-size: 14px;
+          box-shadow: 0 4px 16px rgba(255, 182, 219, 0.3);
+          z-index: 1000;
+          animation: slideInDown 0.3s ease-out;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(0, 0, 0, 0.25);
+          backdrop-filter: blur(4px);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          animation: fadeIn 0.3s ease-out;
+          box-sizing: border-box;
+        }
+
+        .modal-container {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          border-radius: 24px;
+          padding: 32px;
+          max-width: 400px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 10px 40px rgba(255, 182, 219, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .modal-header {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+
+        .modal-icon {
+          font-size: 32px;
+          margin-bottom: 12px;
+        }
+
+        .modal-title {
+          color: #d0488f;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        .form-label {
+          display: block;
+          color: #d0488f;
+          font-weight: 600;
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+
+        .form-input,
+        .form-textarea {
+          width: 100%;
+          padding: 12px 16px;
+          border: 1px solid rgba(255, 182, 219, 0.3);
+          border-radius: 12px;
+          font-size: 16px;
+          background: rgba(255, 255, 255, 0.8);
+          transition: all 0.3s ease;
+          box-sizing: border-box;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+          outline: none;
+          border-color: #ff4081;
+          box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
+        }
+
+        .form-textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+
+        .checkbox-group {
+          display: flex;
+          align-items: center;
+        }
+
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+        }
+
+        .form-checkbox {
+          width: 20px;
+          height: 20px;
+          accent-color: #ff4081;
+        }
+
+        .checkbox-text {
+          color: #d0488f;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .form-error {
+          color: #f44336;
+          font-size: 14px;
+          margin-top: 8px;
+          text-align: center;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .cancel-button,
+        .submit-button {
+          flex: 1;
+          padding: 12px 20px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+        }
+
+        .cancel-button {
+          background: rgba(255, 255, 255, 0.8);
+          color: #b86fa5;
+          border: 1px solid rgba(255, 182, 219, 0.3);
+        }
+
+        .submit-button {
+          background: linear-gradient(135deg, #ff80ab 0%, #ff4081 100%);
+          color: white;
+        }
+
+        .cancel-button:hover {
+          background: rgba(255, 255, 255, 0.9);
+          transform: translateY(-1px);
+        }
+
+        .submit-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 64, 129, 0.3);
+        }
+
+        .event-modal {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          border-radius: 24px;
+          max-width: 400px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 10px 40px rgba(255, 182, 219, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .event-modal-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 24px;
+          border-bottom: 1px solid rgba(255, 182, 219, 0.2);
+        }
+
+        .event-modal-icon {
+          font-size: 32px;
+        }
+
+        .event-modal-info {
+          flex: 1;
+        }
+
+        .event-modal-title {
+          color: #d0488f;
+          font-size: 20px;
+          font-weight: 700;
+          margin: 0 0 4px 0;
+        }
+
+        .event-modal-date {
+          color: #b86fa5;
+          font-size: 14px;
+          margin: 0;
+        }
+
+        .close-button {
+          background: none;
+          border: none;
+          font-size: 24px;
+          color: #b86fa5;
+          cursor: pointer;
+          padding: 0;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+        }
+
+        .close-button:hover {
+          background: rgba(255, 182, 219, 0.1);
+          color: #d0488f;
+        }
+
+        .event-modal-content {
+          padding: 24px;
+        }
+
+        .event-detail {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .detail-icon {
+          font-size: 18px;
+          margin-top: 2px;
+        }
+
+        .detail-text {
+          color: #666;
+          font-size: 14px;
+          line-height: 1.4;
+        }
+
+        .mystery-notice {
+          background: rgba(33, 150, 243, 0.1);
+          border: 1px solid rgba(33, 150, 243, 0.2);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 20px;
+          color: #1976d2;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .mystery-revealed {
+          background: rgba(76, 175, 80, 0.1);
+          border: 1px solid rgba(76, 175, 80, 0.2);
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 20px;
+          color: #4caf50;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .event-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .action-button {
+          flex: 1;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+        }
+
+        .action-button.edit {
+          background: rgba(255, 255, 255, 0.8);
+          color: #b86fa5;
+          border: 1px solid rgba(255, 182, 219, 0.3);
+        }
+
+        .action-button.delete {
+          background: rgba(244, 67, 54, 0.1);
+          color: #f44336;
+          border: 1px solid rgba(244, 67, 54, 0.2);
+        }
+
+        .action-button:hover {
+          transform: translateY(-1px);
+        }
+
+        .modal-content {
+          padding: 24px;
+          text-align: center;
+        }
+
+        .modal-content p {
+          color: #666;
+          font-size: 16px;
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          padding: 0 24px 24px 24px;
+        }
+
+        .cancel-button {
+          flex: 1;
+          padding: 12px 20px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 1px solid rgba(255, 182, 219, 0.3);
+          background: rgba(255, 255, 255, 0.8);
+          color: #b86fa5;
+        }
+
+        .cancel-button:hover {
+          background: rgba(255, 182, 219, 0.1);
+          color: #d0488f;
+          transform: translateY(-1px);
+        }
+
+        @keyframes slideInDown {
+          from {
+            transform: translateX(-50%) translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+        }
+
+        .empty-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+          opacity: 0.6;
+        }
+
+        .empty-title {
+          color: #d0488f;
+          font-size: 20px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+
+        .empty-text {
+          color: #b86fa5;
+          font-size: 14px;
+          margin: 0;
+        }
+      `}</style>
     </div>
   );
 }

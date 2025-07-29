@@ -14,6 +14,7 @@ const BottomNavigation = ({ activePage }) => {
   const menuItems = [
     { id: "story", label: "Notre Histoire", icon: "📖", path: "/story" },
     { id: "secrets", label: "Boîtes à Secrets", icon: "🎁", path: "/secrets" },
+    { id: "films", label: "Films", icon: "🎬", path: "/films" },
   ];
 
   const handleNavigation = (path) => {

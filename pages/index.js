@@ -15,7 +15,7 @@ const mobileMainBg = {
   maxWidth: 420,
   width: "100%",
   margin: "0 auto",
-  height: "200vh",
+  height: "220vh",
 };
 
 const mobileCard = {
@@ -34,7 +34,7 @@ const mobileCard = {
 
 const mobileCardHover = {
   transform: "translateY(-4px)",
-  boxShadow: "0 10px 30px rgba(255, 200, 220, 0.6)",
+  boxShadow: "0 10px 30px rgba(255, 200, 220, 0.6)", // More pronounced shadow
 };
 
 const bigBtn = {
@@ -842,9 +842,131 @@ export default function Home() {
         weekday: "long",
         day: "numeric",
         month: "long",
+        year: "numeric",
       })
       .replace(/^(.)/, (c) => c.toUpperCase());
   }
+
+  // Fonction pour calculer le temps restant jusqu'à un événement
+  function getTimeUntilEvent(eventDate, eventTime) {
+    const now = new Date();
+    const eventDateTime = new Date(eventDate);
+
+    if (eventTime) {
+      const [hours, minutes] = eventTime.split(":");
+      eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    } else {
+      // Si pas d'heure, on considère 18h00 par défaut
+      eventDateTime.setHours(18, 0, 0, 0);
+    }
+
+    const diff = eventDateTime - now;
+
+    if (diff <= 0) {
+      return {
+        isPast: true,
+        text: "Aujourd'hui",
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+      };
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return {
+        isPast: false,
+        text: `${days} jour${days > 1 ? "s" : ""}`,
+        days: days,
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+      };
+    } else if (hours > 0) {
+      return {
+        isPast: false,
+        text: `${hours}h${minutes > 0 ? ` ${minutes}min` : ""}`,
+        days: 0,
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+      };
+    } else {
+      return {
+        isPast: false,
+        text: `${minutes}min`,
+        days: 0,
+        hours: 0,
+        minutes: minutes,
+        seconds: seconds,
+      };
+    }
+  }
+
+  // Fonction pour vérifier si un événement mystère est passé et doit être dévoilé
+  function isMysteryEventRevealed(event) {
+    if (!event.is_mystery) return false;
+
+    const now = new Date();
+    const eventDateTime = new Date(event.date);
+
+    if (event.time) {
+      const [hours, minutes] = event.time.split(":");
+      eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    } else {
+      // Si pas d'heure, on considère 18h00 par défaut
+      eventDateTime.setHours(18, 0, 0, 0);
+    }
+
+    return now >= eventDateTime;
+  }
+
+  // Fonction pour obtenir les événements à venir les plus proches
+  function getUpcomingEvents() {
+    const now = new Date();
+    const today = toLocalDateString(now);
+
+    return Object.values(eventsByDate)
+      .filter((event) => {
+        const eventDate = event.date;
+        if (eventDate < today) return false;
+
+        if (eventDate === today && event.time) {
+          const [hours, minutes] = event.time.split(":");
+          const eventTime = new Date();
+          eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          return eventTime > now;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const aTime = getTimeUntilEvent(a.date, a.time);
+        const bTime = getTimeUntilEvent(b.date, b.time);
+        return aTime.isPast ? 1 : bTime.isPast ? -1 : 0;
+      })
+      .slice(0, 1); // Limiter à 1 événement pour le compte à rebours
+  }
+
+  const upcomingEvents = getUpcomingEvents();
+
+  // État pour forcer le re-render du compte à rebours
+  const [countdownTick, setCountdownTick] = useState(0);
+
+  // Effet pour mettre à jour le compte à rebours chaque seconde
+  useEffect(() => {
+    if (upcomingEvents.length > 0) {
+      const interval = setInterval(() => {
+        setCountdownTick((prev) => prev + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [upcomingEvents.length]);
 
   return (
     <div style={mobileMainBg}>
@@ -1145,6 +1267,149 @@ export default function Home() {
             </button>
           </div>
         </section>
+
+        {/* HORLOGE NUMÉRIQUE - COMPTE À REBOURS */}
+        {upcomingEvents.length > 0 && (
+          <section
+            style={{
+              ...mobileCard,
+              marginTop: 16,
+              background: "linear-gradient(135deg, #fff8fc 0%, #ffeef8 100%)",
+              border: "1px solid #ffd6ef",
+              position: "relative",
+              overflow: "hidden",
+              textAlign: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background:
+                  "linear-gradient(90deg, #ff80ab 0%, #ff4081 50%, #ff80ab 100%)",
+                animation: "shimmer 2s ease-in-out infinite",
+              }}
+            ></div>
+
+            {upcomingEvents.map((event) => {
+              const timeUntil = getTimeUntilEvent(event.date, event.time);
+              const isToday = event.date === toLocalDateString(new Date());
+
+              return (
+                <div key={event.id}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <h3
+                      style={{
+                        color: "#d0488f",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        margin: "0 0 2px 0",
+                      }}
+                    >
+                      Prochain événement
+                    </h3>
+                    <p
+                      style={{
+                        color: "#b86fa5",
+                        fontSize: 14,
+                        margin: 0,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {event.is_mystery && !isMysteryEventRevealed(event)
+                        ? "Événement mystère"
+                        : event.title}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: 12,
+                      padding: "16px 12px",
+                      border: "2px solid #ffd6ef",
+                      marginBottom: 12,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 16px rgba(255, 200, 220, 0.4)";
+                      e.currentTarget.style.borderColor = "#ff80ab";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.borderColor = "#ffd6ef";
+                    }}
+                    onClick={() => openEventModal(event)}
+                  >
+                    <div
+                      style={{
+                        fontSize: 24,
+                        fontWeight: 700,
+                        color: "#ff4081",
+                        marginBottom: 6,
+                        fontFamily: "monospace",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      {timeUntil.isPast
+                        ? "MAINTENANT"
+                        : timeUntil.days > 0
+                        ? `${timeUntil.days
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.hours
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.minutes
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.seconds
+                            .toString()
+                            .padStart(2, "0")}`
+                        : timeUntil.hours > 0
+                        ? `${timeUntil.hours
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.minutes
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.seconds
+                            .toString()
+                            .padStart(2, "0")}`
+                        : `${timeUntil.minutes
+                            .toString()
+                            .padStart(2, "0")}:${timeUntil.seconds
+                            .toString()
+                            .padStart(2, "0")}`}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#b86fa5",
+                      fontWeight: 600,
+                    }}
+                  >
+                    📅 {formatDateFr(event.date)}
+                    {event.time && (
+                      <span style={{ marginLeft: 8 }}>⏰ {event.time}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
         {/* MODAL DETAILS EVENEMENT */}
         {showEventModal && modalEvent && (
           <div style={modalOverlay} onClick={closeEventModal}>
@@ -1180,16 +1445,17 @@ export default function Home() {
                       marginBottom: 2,
                     }}
                   >
-                    {modalEvent.title}
+                    {modalEvent.is_mystery &&
+                    !isMysteryEventRevealed(modalEvent)
+                      ? "Événement mystère"
+                      : modalEvent.title}
                   </div>
                   <div
                     style={{ color: "#b86fa5", fontSize: 16, fontWeight: 500 }}
                   >
                     {modalEvent.date}{" "}
                     {modalEvent.time && (
-                      <span style={{ marginLeft: 8 }}>
-                        ⏰ {modalEvent.time}
-                      </span>
+                      <span style={{ marginLeft: 8 }}>{modalEvent.time}</span>
                     )}
                   </div>
                 </div>
@@ -1212,44 +1478,84 @@ export default function Home() {
                 </button>
               </div>
               <div style={{ padding: "22px 32px 18px 32px" }}>
-                {modalEvent.location && (
-                  <div
-                    style={{
-                      color: "#b86fa5",
-                      fontSize: 16,
-                      marginBottom: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <span style={{ fontSize: 20 }}>📍</span>
-                    <span>{modalEvent.location}</span>
-                  </div>
-                )}
-                {modalEvent.description && (
-                  <div
-                    style={{
-                      color: "#444",
-                      fontSize: 16,
-                      marginBottom: 18,
-                      background: "#fff8fc",
-                      borderRadius: 8,
-                      padding: "12px 14px",
-                    }}
-                  >
-                    <span
+                {modalEvent.location &&
+                  (!modalEvent.is_mystery ||
+                    isMysteryEventRevealed(modalEvent)) && (
+                    <div
                       style={{
-                        fontWeight: 500,
                         color: "#b86fa5",
-                        marginRight: 8,
+                        fontSize: 16,
+                        marginBottom: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
                       }}
                     >
-                      📝
-                    </span>
-                    {modalEvent.description}
-                  </div>
-                )}
+                      <span style={{ fontSize: 20 }}>📍</span>
+                      <span>{modalEvent.location}</span>
+                    </div>
+                  )}
+                {modalEvent.description &&
+                  (!modalEvent.is_mystery ||
+                    isMysteryEventRevealed(modalEvent)) && (
+                    <div
+                      style={{
+                        color: "#444",
+                        fontSize: 16,
+                        marginBottom: 18,
+                        background: "#fff8fc",
+                        borderRadius: 8,
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          color: "#b86fa5",
+                          marginRight: 8,
+                        }}
+                      >
+                        📝
+                      </span>
+                      {modalEvent.description}
+                    </div>
+                  )}
+                {modalEvent.is_mystery &&
+                  !isMysteryEventRevealed(modalEvent) && (
+                    <div
+                      style={{
+                        background: "rgba(33, 150, 243, 0.1)",
+                        border: "1px solid rgba(33, 150, 243, 0.2)",
+                        borderRadius: 12,
+                        padding: 16,
+                        marginBottom: 20,
+                        color: "#1976d2",
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      🎭 Cet événement est un mystère ! Les détails ne seront
+                      révélés qu'au moment venu.
+                    </div>
+                  )}
+                {modalEvent.is_mystery &&
+                  isMysteryEventRevealed(modalEvent) && (
+                    <div
+                      style={{
+                        background: "rgba(76, 175, 80, 0.1)",
+                        border: "1px solid rgba(76, 175, 80, 0.2)",
+                        borderRadius: 12,
+                        padding: 16,
+                        marginBottom: 20,
+                        color: "#2e7d32",
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      🎉 Le mystère est révélé ! Voici tous les détails de
+                      l'événement.
+                    </div>
+                  )}
                 <div
                   style={{
                     borderTop: "1px solid #f3d6e7",
@@ -1472,7 +1778,10 @@ export default function Home() {
                                     : `${displayUserName(
                                         userId
                                       )} te rappelle de répondre à l'événement : ${
-                                        modalEvent.title
+                                        modalEvent.is_mystery &&
+                                        !isMysteryEventRevealed(modalEvent)
+                                          ? "Événement mystère"
+                                          : modalEvent.title
                                       }`,
                                   targetUserId: otherUser,
                                 });
@@ -1890,6 +2199,27 @@ export default function Home() {
           display: inline-block;
           animation: hourglass-flip 2.2s infinite;
           transform-origin: 50% 60%;
+        }
+
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+          }
         }
       `}</style>
     </div>

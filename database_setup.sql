@@ -163,3 +163,61 @@ INSERT INTO milestones (title, description, date, icon, type, sort_order) VALUES
 ('Premier voyage ensemble', 'Notre première aventure en duo...', '2023-07-15', '✈️', 'milestone', 5),
 ('Premier anniversaire', 'Une année ensemble, pleine de bonheur...', '2024-04-10', '🎂', 'anniversary', 6)
 ON CONFLICT DO NOTHING;
+
+-- Table pour les films
+CREATE TABLE IF NOT EXISTS movies (
+  id SERIAL PRIMARY KEY,
+  tmdb_id INTEGER UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  original_title VARCHAR(255),
+  overview TEXT,
+  poster_path VARCHAR(255),
+  backdrop_path VARCHAR(255),
+  release_date DATE,
+  vote_average DECIMAL(3,1),
+  genre_ids INTEGER[],
+  added_by VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table pour les swipes de films
+CREATE TABLE IF NOT EXISTS movie_swipes (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(50) NOT NULL,
+  movie_id INTEGER NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+  action VARCHAR(10) NOT NULL CHECK (action IN ('left', 'right')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, movie_id)
+);
+
+-- Table pour les films vus
+CREATE TABLE IF NOT EXISTS movie_watched (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(50) NOT NULL,
+  movie_id INTEGER NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+  watched_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, movie_id)
+);
+
+-- Index pour améliorer les performances
+CREATE INDEX IF NOT EXISTS idx_movie_swipes_user_id ON movie_swipes(user_id);
+CREATE INDEX IF NOT EXISTS idx_movie_swipes_movie_id ON movie_swipes(movie_id);
+CREATE INDEX IF NOT EXISTS idx_movie_swipes_action ON movie_swipes(action);
+CREATE INDEX IF NOT EXISTS idx_movie_watched_user_id ON movie_watched(user_id);
+CREATE INDEX IF NOT EXISTS idx_movie_watched_movie_id ON movie_watched(movie_id);
+CREATE INDEX IF NOT EXISTS idx_movies_tmdb_id ON movies(tmdb_id);
+CREATE INDEX IF NOT EXISTS idx_movies_added_by ON movies(added_by);
+
+-- Fonction pour mettre à jour updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger pour movies
+CREATE TRIGGER update_movies_updated_at BEFORE UPDATE ON movies
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
