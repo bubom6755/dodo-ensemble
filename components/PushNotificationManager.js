@@ -156,17 +156,37 @@ const PushNotificationManager = () => {
       }
 
       addLog("💾 Sauvegarde en base...", "info");
+      addLog(`👤 User ID: ${userId}`, "info");
+      addLog(
+        `🔗 Endpoint: ${subscription.endpoint ? "Présent" : "Manquant"}`,
+        "info"
+      );
+      addLog(
+        `🔑 Clés: ${subscription.keys ? "Présentes" : "Manquantes"}`,
+        "info"
+      );
+
+      const requestData = {
+        subscription: subscription,
+        userId: userId,
+      };
+
+      addLog(
+        `📤 Envoi des données: ${JSON.stringify(requestData, null, 2)}`,
+        "info"
+      );
+
       const response = await fetch("/api/save-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscription: subscription,
-          userId: userId,
-        }),
+        body: JSON.stringify(requestData),
       });
+
+      const responseData = await response.json();
 
       if (response.ok) {
         addLog("✅ Notifications activées avec succès !", "success");
+        addLog(`📊 Réponse serveur: ${JSON.stringify(responseData)}`, "info");
         setIsSubscribed(true);
         setSubscription(subscription);
         window.showToast?.({
@@ -174,7 +194,11 @@ const PushNotificationManager = () => {
           type: "success",
         });
       } else {
-        throw new Error("Erreur lors de la sauvegarde");
+        addLog(`❌ Erreur serveur: ${response.status}`, "error");
+        addLog(`📋 Détails: ${JSON.stringify(responseData)}`, "error");
+        throw new Error(
+          `Erreur serveur: ${responseData.error || response.statusText}`
+        );
       }
     } catch (error) {
       addLog(`❌ Erreur: ${error.message}`, "error");
