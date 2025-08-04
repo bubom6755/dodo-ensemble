@@ -141,104 +141,16 @@ const PushNotificationManager = () => {
 
       // Créer la subscription
       addLog("🔑 Création de la subscription...", "info");
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      addLog("✅ Subscription créée", "success");
 
-      // Essayer plusieurs fois pour Safari iOS
-      let subscription = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (attempts < maxAttempts) {
-        try {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-          });
-
-          addLog(`✅ Tentative ${attempts + 1}: Subscription créée`, "success");
-
-          // Vérifier les clés
-          if (
-            subscription.keys &&
-            subscription.keys.p256dh &&
-            subscription.keys.auth
-          ) {
-            addLog("✅ Clés présentes, on continue", "success");
-            break;
-          } else {
-            addLog(`⚠️ Tentative ${attempts + 1}: Clés manquantes`, "info");
-            attempts++;
-            if (attempts < maxAttempts) {
-              addLog(
-                `⏳ Attente de 3 secondes avant tentative ${attempts + 1}...`,
-                "info"
-              );
-              await new Promise((resolve) => setTimeout(resolve, 3000));
-            }
-          }
-        } catch (error) {
-          addLog(
-            `❌ Tentative ${attempts + 1} échouée: ${error.message}`,
-            "error"
-          );
-          attempts++;
-          if (attempts < maxAttempts) {
-            addLog(
-              `⏳ Attente de 3 secondes avant tentative ${attempts + 1}...`,
-              "info"
-            );
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-          }
-        }
-      }
-
-      if (
-        !subscription ||
-        !subscription.keys ||
-        !subscription.keys.p256dh ||
-        !subscription.keys.auth
-      ) {
-        addLog(
-          "❌ Clés manquantes, affichage des données disponibles...",
-          "error"
-        );
-
-        // Afficher les données disponibles pour copier-coller
-        const subscriptionData = {
-          endpoint: subscription?.endpoint || "Endpoint manquant",
-          keys: subscription?.keys || "Clés manquantes",
-        };
-
-        addLog("📋 Données de la subscription:", "info");
-        addLog(`🔗 Endpoint: ${subscriptionData.endpoint}`, "info");
-        addLog(
-          `🔑 Keys: ${JSON.stringify(subscriptionData.keys, null, 2)}`,
-          "info"
-        );
-
-        // Créer un bouton pour copier les données
-        addLog(
-          "💡 Copiez ces données et collez-les manuellement dans votre base de données",
-          "info"
-        );
-
-        // Créer une subscription manuelle avec les vraies données
-        const manualSubscription = {
-          endpoint: subscription?.endpoint || "https://manual.endpoint",
-          keys: subscription?.keys || {
-            p256dh: "manual-p256dh-key",
-            auth: "manual-auth-key",
-          },
-        };
-
-        addLog(
-          "✅ Tentative de sauvegarde avec données disponibles...",
-          "info"
-        );
-        await saveSubscriptionToDatabase(manualSubscription);
-        return;
-      }
-
-      addLog("✅ Subscription finale validée avec clés", "success");
+      // Afficher les données de la subscription
+      addLog("📋 Données de la subscription:", "info");
+      addLog(`🔗 Endpoint: ${subscription.endpoint}`, "info");
+      addLog(`🔑 Keys: ${JSON.stringify(subscription.keys, null, 2)}`, "info");
 
       // Sauvegarder en base
       const userId = localStorage.getItem("userId");
