@@ -127,6 +127,7 @@ const PushNotificationManager = () => {
         borderRadius: "16px",
         padding: "20px",
         margin: "16px 0",
+        marginBottom: "90px",
         border: "1px solid rgba(255, 200, 220, 0.3)",
         boxShadow: "0 4px 20px rgba(255, 200, 220, 0.2)",
       }}

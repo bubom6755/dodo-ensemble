@@ -20,7 +20,6 @@ const mobileMainBg = {
   maxWidth: "100vw", // Utilise toute la largeur de l'écran
   width: "100%",
   margin: "0 auto",
-  height: "220vh",
 };
 
 const mobileCard = {
@@ -28,7 +27,7 @@ const mobileCard = {
   borderRadius: 20, // Slightly more rounded
   boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // A softer, more spread-out shadow
   padding: 24, // Slightly more padding for breathability
-  margin: "24px 0", // More margin top/bottom
+  margin: "16px 0", // Reduced margin for better spacing
   width: "100%",
   maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
   marginLeft: "auto",
@@ -163,7 +162,7 @@ const calendarStyle = {
   borderRadius: 20, // Consistent rounded corners
   boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // Consistent shadow
   padding: 28, // More padding
-  margin: "32px auto 0 auto",
+  margin: "16px auto 0 auto", // Reduced top margin for better spacing
   maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
 };
 const calendarHeader = {
@@ -1015,11 +1014,11 @@ export default function Home() {
           flexDirection: "column",
           justifyContent: "flex-start",
           boxSizing: "border-box",
-          paddingBottom: 450,
+          paddingBottom: 200, // Increased padding to make push notifications accessible
         }}
       >
         <div
-          style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}
+          style={{ ...mobileCard, marginTop: 16, textAlign: "center" }}
           onMouseEnter={() => setBtnHover("card1")} // Using btnHover state for card hover
           onMouseLeave={() => setBtnHover("")}
         >
