@@ -1,35 +1,18 @@
 // Service Worker for Push Notifications
 const CACHE_NAME = "dodo-ensemble-v1";
 
-// Install event - cache static assets
+// Install event - simplified cache
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        "/",
-        "/static/js/bundle.js",
-        "/static/css/main.css",
-      ]);
-    })
-  );
+  // Skip waiting to activate immediately
+  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - simplified activation
 self.addEventListener("activate", (event) => {
   console.log("Service Worker activating...");
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("Deleting old cache:", cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
+  // Claim all clients immediately
+  event.waitUntil(self.clients.claim());
 });
 
 // Push event - handle push notifications
@@ -77,8 +60,7 @@ self.addEventListener("push", (event) => {
   const options = {
     ...notificationData,
     vibrate: [200, 100, 200],
-    sound: "/notification-sound.mp3", // Optional sound file
-    silent: true, // Set to false if you have a sound file
+    silent: true,
     requireInteraction: false,
     renotify: true,
     tag: "dodo-notification",
@@ -128,18 +110,6 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Background sync for offline functionality
-self.addEventListener("sync", (event) => {
-  console.log("Background sync:", event);
-
-  if (event.tag === "background-sync") {
-    event.waitUntil(
-      // Handle background sync tasks
-      console.log("Background sync task")
-    );
-  }
-});
-
 // Message event for communication with main app
 self.addEventListener("message", (event) => {
   console.log("Message received in SW:", event);
@@ -147,30 +117,4 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
-});
-
-// Fetch event for offline support
-self.addEventListener("fetch", (event) => {
-  // Only handle GET requests
-  if (event.request.method !== "GET") {
-    return;
-  }
-
-  // Skip non-GET requests and external requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // Return offline page if available
-        return caches.match("/offline.html");
-      })
-  );
 });
