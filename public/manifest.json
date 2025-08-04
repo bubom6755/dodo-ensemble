@@ -5,7 +5,7 @@
   "start_url": "/login",
   "display": "standalone",
   "background_color": "#fce4ec",
-  "theme_color": "#ff4081",
+  "theme_color": "#fce4ec",
   "orientation": "portrait",
   "scope": "/",
   "lang": "fr",
