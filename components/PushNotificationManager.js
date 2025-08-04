@@ -17,13 +17,41 @@ const PushNotificationManager = () => {
 
   const checkSubscriptionStatus = async () => {
     try {
+      console.log("🔍 Vérification du statut des notifications...");
+
+      // Vérifier si les notifications sont supportées
+      if (typeof window === "undefined" || !("Notification" in window)) {
+        console.log("❌ Notifications non supportées");
+        setIsSupported(false);
+        return;
+      }
+
+      // Vérifier les permissions
+      const permission = Notification.permission;
+      console.log("📋 Permission actuelle:", permission);
+
+      if (permission === "denied") {
+        console.log("❌ Notifications bloquées par l'utilisateur");
+        setIsSupported(false);
+        return;
+      }
+
       const registration = await navigator.serviceWorker.ready;
+      console.log("✅ Service worker prêt:", registration);
+
       const existingSubscription =
         await registration.pushManager.getSubscription();
+
+      console.log(
+        "📱 Subscription existante:",
+        existingSubscription ? "Oui" : "Non"
+      );
+
       setIsSubscribed(!!existingSubscription);
       setSubscription(existingSubscription);
     } catch (error) {
-      console.error("Error checking subscription status:", error);
+      console.error("❌ Erreur lors de la vérification du statut:", error);
+      setIsSupported(false);
     }
   };
 
@@ -39,29 +67,65 @@ const PushNotificationManager = () => {
 
     setIsLoading(true);
     try {
+      console.log("🔔 Début de l'abonnement aux notifications...");
+
+      // Vérifier les permissions d'abord
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "denied"
+      ) {
+        throw new Error(
+          "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur."
+        );
+      }
+
+      console.log("📱 Enregistrement du service worker...");
       const registration = await navigator.serviceWorker.register("/sw.js");
+      console.log("✅ Service worker enregistré:", registration);
+
+      // Attendre que le service worker soit actif
+      if (registration.installing || registration.waiting) {
+        console.log("⏳ Attente de l'activation du service worker...");
+        await new Promise((resolve) => {
+          const serviceWorker = registration.installing || registration.waiting;
+          serviceWorker.addEventListener("statechange", () => {
+            if (serviceWorker.state === "activated") {
+              console.log("✅ Service worker activé");
+              resolve();
+            }
+          });
+        });
+      }
+
+      console.log("🔍 Vérification du service worker actif...");
+      const activeRegistration = await navigator.serviceWorker.ready;
+      console.log("✅ Service worker prêt:", activeRegistration);
+
       const existingSubscription =
-        await registration.pushManager.getSubscription();
+        await activeRegistration.pushManager.getSubscription();
 
       if (existingSubscription) {
+        console.log("🔄 Désabonnement de l'ancienne subscription...");
         await existingSubscription.unsubscribe();
       }
 
-      const newSubscription = await registration.pushManager.subscribe({
+      console.log("🔑 Création de la nouvelle subscription...");
+      const newSubscription = await activeRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
+      console.log("✅ Nouvelle subscription créée:", newSubscription);
 
       // Save subscription to database
       const userId = localStorage.getItem("userId");
       if (!userId) {
-        window.showToast?.({
-          message: "Vous devez être connecté pour activer les notifications",
-          type: "error",
-        });
-        return;
+        throw new Error(
+          "Vous devez être connecté pour activer les notifications"
+        );
       }
 
+      console.log("💾 Sauvegarde de la subscription en base...");
       const response = await fetch("/api/save-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,6 +136,9 @@ const PushNotificationManager = () => {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log("✅ Subscription sauvegardée:", result);
+
         setIsSubscribed(true);
         setSubscription(newSubscription);
         window.showToast?.({
@@ -79,12 +146,40 @@ const PushNotificationManager = () => {
           type: "success",
         });
       } else {
-        throw new Error("Failed to save subscription");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Erreur lors de la sauvegarde:", errorData);
+        throw new Error(
+          `Erreur serveur: ${errorData.error || response.statusText}`
+        );
       }
     } catch (error) {
-      console.error("Error subscribing to push:", error);
+      console.error("❌ Erreur détaillée lors de l'abonnement:", error);
+
+      // Messages d'erreur plus spécifiques
+      let errorMessage = "Erreur lors de l'activation des notifications";
+
+      if (error.message.includes("bloquées")) {
+        errorMessage =
+          "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur.";
+      } else if (error.message.includes("connecté")) {
+        errorMessage =
+          "Vous devez être connecté pour activer les notifications";
+      } else if (error.message.includes("serveur")) {
+        errorMessage = error.message;
+      } else if (error.name === "NotAllowedError") {
+        errorMessage =
+          "Permission refusée. Veuillez autoriser les notifications.";
+      } else if (error.name === "NotSupportedError") {
+        errorMessage =
+          "Les notifications push ne sont pas supportées sur votre appareil.";
+      } else if (error.name === "InvalidStateError") {
+        errorMessage = "État invalide. Veuillez réessayer.";
+      } else if (error.name === "NetworkError") {
+        errorMessage = "Erreur réseau. Vérifiez votre connexion internet.";
+      }
+
       window.showToast?.({
-        message: "Erreur lors de l'activation des notifications",
+        message: errorMessage,
         type: "error",
       });
     } finally {
@@ -116,7 +211,57 @@ const PushNotificationManager = () => {
   };
 
   if (!isSupported) {
-    return null;
+    return (
+      <div
+        style={{
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(10px)",
+          borderRadius: "16px",
+          padding: "20px",
+          margin: "16px 0",
+          marginBottom: "90px",
+          border: "1px solid rgba(255, 200, 220, 0.3)",
+          boxShadow: "0 4px 20px rgba(255, 200, 220, 0.2)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "16px",
+          }}
+        >
+          <span style={{ fontSize: "24px" }}>⚠️</span>
+          <div>
+            <h3
+              style={{
+                margin: "0 0 4px 0",
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "#333",
+              }}
+            >
+              Notifications non disponibles
+            </h3>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "14px",
+                color: "#666",
+                lineHeight: "1.4",
+              }}
+            >
+              {typeof window !== "undefined" &&
+              "Notification" in window &&
+              Notification.permission === "denied"
+                ? "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur."
+                : "Les notifications push ne sont pas supportées sur votre appareil ou navigateur."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
