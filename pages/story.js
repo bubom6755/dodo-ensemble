@@ -3,103 +3,6 @@ import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 import BottomNavigation from "../components/BottomNavigation";
 
-// Réutilisation des styles constants
-const mobileMainBg = {
-  minHeight: "100vh",
-  background: "linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)",
-  padding: "0 8px",
-  boxSizing: "border-box",
-  maxWidth: 420,
-  width: "100%",
-  margin: "0 auto",
-};
-
-const mobileCard = {
-  background: "#ffffff",
-  borderRadius: 20,
-  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)",
-  padding: 20,
-  margin: "16px 0",
-  width: "100%",
-  maxWidth: 480,
-  marginLeft: "auto",
-  marginRight: "auto",
-  boxSizing: "border-box",
-  transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out",
-};
-
-const bigBtn = {
-  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)",
-  color: "#fff",
-  border: "none",
-  borderRadius: 36,
-  fontSize: 18,
-  fontWeight: 700,
-  padding: "1rem 2rem",
-  margin: "8px 0",
-  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)",
-  cursor: "pointer",
-  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out",
-  outline: "none",
-};
-
-const modalOverlay = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  background: "rgba(0,0,0,0.25)",
-  zIndex: 1000,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backdropFilter: "blur(4px)",
-};
-
-const modalBox = {
-  background: "#ffffff",
-  borderRadius: 20,
-  boxShadow: "0 10px 40px rgba(184, 111, 165, 0.3)",
-  padding: 24,
-  minWidth: 300,
-  maxWidth: 350,
-  zIndex: 1001,
-};
-
-const mobileInput = {
-  padding: 12,
-  borderRadius: 10,
-  border: "1px solid #ffcccb",
-  fontSize: 16,
-  marginBottom: 12,
-  background: "#fff8fb",
-  width: "100%",
-  boxSizing: "border-box",
-  color: "#4a4a4a",
-  transition: "border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-};
-
-const mobileTextarea = {
-  ...mobileInput,
-  minHeight: 80,
-  maxHeight: 200,
-  fontFamily: "inherit",
-  fontSize: 14,
-  resize: "vertical",
-  marginBottom: 12,
-  color: "#4a4a4a",
-};
-
-const labelStyle = {
-  fontWeight: 600,
-  color: "#d0488f",
-  marginRight: 8,
-  display: "block",
-  marginBottom: 4,
-  fontSize: 14,
-};
-
 export default function Story() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
@@ -422,757 +325,840 @@ export default function Story() {
   const timeline = createTimeline();
 
   return (
-    <div style={mobileMainBg}>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            top: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#ffebee",
-            color: "#d0488f",
-            border: "1.5px solid #ffcdd2",
-            borderRadius: 12,
-            padding: "12px 32px",
-            fontWeight: 600,
-            fontSize: 17,
-            boxShadow: "0 4px 16px rgba(255, 200, 220, 0.4)",
-            zIndex: 2000,
-            animation: "slideInDown 0.5s ease-out",
-          }}
-        >
-          {toast.message}
+    <div className="story-container">
+      {/* Header romantique */}
+      <div className="story-header">
+        <div className="header-content">
+          <div className="header-icon">💕</div>
+          <h1 className="header-title">Notre Histoire d'Amour</h1>
+          <p className="header-subtitle">Les pages de notre livre d'amour</p>
         </div>
-      )}
+      </div>
 
-      <main
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          margin: "auto",
-          padding: 0,
-          fontFamily: "sans-serif",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          boxSizing: "border-box",
-          paddingBottom: 100,
-        }}
-      >
-        {/* Header */}
-        <div style={{ ...mobileCard, marginTop: 24, textAlign: "center" }}>
-          <h1
-            style={{
-              color: "#ff4081",
-              fontSize: 28,
-              margin: "18px 0 24px 0",
-            }}
-          >
-            📖 Notre Histoire
-          </h1>
-          <p style={{ color: "#b86fa5", fontSize: 16, marginBottom: 20 }}>
-            La timeline de notre belle histoire d'amour...
-          </p>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              style={{
-                ...bigBtn,
-                fontSize: 14,
-                padding: "0.8rem 1.2rem",
-              }}
-              onClick={openAddModal}
-            >
-              ✨ Ajouter un souvenir
-            </button>
-            {userId === "victor" && (
-              <button
-                style={{
-                  ...bigBtn,
-                  fontSize: 14,
-                  padding: "0.8rem 1.2rem",
-                  background:
-                    "linear-gradient(90deg, #4caf50 0%, #45a049 100%)",
-                }}
-                onClick={() => openEventModal()}
-              >
-                ⭐ Événement important
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Boutons d'action */}
+      <div className="action-buttons">
+        <button className="add-story-button" onClick={openAddModal}>
+          <span className="button-icon">✨</span>
+          <span className="button-text">Ajouter un souvenir</span>
+        </button>
+        {userId === "victor" && (
+          <button className="add-event-button" onClick={() => openEventModal()}>
+            <span className="button-icon">⭐</span>
+            <span className="button-text">Événement important</span>
+          </button>
+        )}
+      </div>
 
-        {/* Timeline */}
+      {/* Contenu principal */}
+      <div className="story-content">
         {loading ? (
-          <div style={{ ...mobileCard, textAlign: "center" }}>
-            <div style={{ color: "#ff80ab", fontSize: 20, margin: "24px 0" }}>
-              Chargement...
-            </div>
+          <div className="loading-state">
+            <div className="loading-icon">💕</div>
+            <h3 className="loading-title">Chargement de notre histoire...</h3>
           </div>
         ) : timeline.length === 0 ? (
-          <div style={{ ...mobileCard, textAlign: "center" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📖</div>
-            <h3 style={{ color: "#ff4081", marginBottom: 8 }}>
-              Aucune histoire encore
-            </h3>
-            <p style={{ color: "#888", marginBottom: 20 }}>
-              Commencez à écrire votre belle histoire d'amour !
+          <div className="empty-state">
+            <div className="empty-icon">💕</div>
+            <h3 className="empty-title">Notre histoire commence ici</h3>
+            <p className="empty-text">
+              Commencez à écrire les pages de votre belle histoire d'amour !
             </p>
-            <button style={bigBtn} onClick={openAddModal}>
-              Écrire la première page
-            </button>
           </div>
         ) : (
-          <div style={{ padding: "0 8px" }}>
+          <div className="story-book">
             {timeline.map((item, index) => (
               <div
                 key={item.id}
+                className="story-page"
                 style={{
-                  ...mobileCard,
-                  position: "relative",
-                  marginBottom: 16,
-                  animation: "fadeInUp 0.6s ease-out",
-                  animationDelay: `${index * 0.1}s`,
-                  animationFillMode: "both",
-                  transform: "translateY(0)",
-                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 8px 24px rgba(255, 200, 220, 0.5)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 6px 24px rgba(255, 200, 220, 0.4)";
+                  animationDelay: `${index * 0.15}s`,
                 }}
               >
-                {/* Contenu de l'événement */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      background:
-                        item.source === "milestone"
-                          ? "linear-gradient(135deg, #ff4081 0%, #d0488f 100%)"
-                          : item.source === "response"
-                          ? "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
-                          : "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                      borderRadius: 12,
-                      padding: "10px",
-                      color: "white",
-                      fontSize: 18,
-                      minWidth: 40,
-                      textAlign: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 8,
-                        marginBottom: 6,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <h3
-                        style={{
-                          color: "#d0488f",
-                          fontSize: 16,
-                          fontWeight: 700,
-                          margin: 0,
-                          flex: 1,
-                          minWidth: 0,
-                        }}
-                      >
-                        {item.title}
-                      </h3>
-                      {item.source !== "milestone" && (
-                        <span
-                          style={{
-                            background: "#fff0fa",
-                            color: "#b86fa5",
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {item.source === "response"
-                            ? "💤 Dodo"
-                            : item.source === "event"
-                            ? "📅 Événement"
-                            : "📖 Souvenir"}
-                        </span>
-                      )}
-                      {item.source === "milestone" && userId === "victor" && (
-                        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                          <button
-                            onClick={() => openEventModal(item)}
-                            style={{
-                              background: "rgba(255, 200, 220, 0.2)",
-                              border: "none",
-                              borderRadius: 4,
-                              padding: "4px 6px",
-                              fontSize: 12,
-                              color: "#d0488f",
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "rgba(255, 200, 220, 0.4)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background =
-                                "rgba(255, 200, 220, 0.2)";
-                            }}
-                            title="Modifier"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => deleteEvent(item.id)}
-                            style={{
-                              background: "rgba(255, 100, 100, 0.2)",
-                              border: "none",
-                              borderRadius: 4,
-                              padding: "4px 6px",
-                              fontSize: 12,
-                              color: "#e74c3c",
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "rgba(255, 100, 100, 0.4)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background =
-                                "rgba(255, 100, 100, 0.2)";
-                            }}
-                            title="Supprimer"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <p
-                      style={{
-                        color: "#b86fa5",
-                        fontSize: 13,
-                        margin: "0 0 6px 0",
-                        fontWeight: 600,
-                      }}
-                    >
-                      📅 {formatDateShort(item.date)}
-                    </p>
-                    <p
-                      style={{
-                        color: "#666",
-                        fontSize: 13,
-                        lineHeight: 1.4,
-                        margin: "6px 0 0 0",
-                      }}
-                    >
-                      {item.description}
-                    </p>
-                    {item.source !== "milestone" && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 12,
-                            color: "#b86fa5",
-                            fontWeight: 600,
-                          }}
-                        >
-                          👤 {displayUserName(item.user_id)}
-                        </span>
+                <div className="page-ribbon"></div>
+                <div className="page-content">
+                  <div className="page-header">
+                    <div className="page-icon">{item.icon}</div>
+                    <div className="page-meta">
+                      <h3 className="page-title">{item.title}</h3>
+                      <div className="page-badges">
+                        {item.source !== "milestone" && (
+                          <span className="page-badge">
+                            {item.source === "response"
+                              ? "💤 Dodo"
+                              : item.source === "event"
+                              ? "📅 Événement"
+                              : "📖 Souvenir"}
+                          </span>
+                        )}
+                        {item.source === "milestone" && userId === "victor" && (
+                          <div className="page-actions">
+                            <button
+                              className="edit-button"
+                              onClick={() => openEventModal(item)}
+                              title="Modifier"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="delete-button"
+                              onClick={() => deleteEvent(item.id)}
+                              title="Supprimer"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
+
+                  <div className="page-date">
+                    📅 {formatDateShort(item.date)}
+                  </div>
+
+                  <p className="page-description">{item.description}</p>
+
+                  {item.source !== "milestone" && (
+                    <div className="page-user">
+                      <span className="user-info">
+                        👤 {displayUserName(item.user_id)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </main>
+      </div>
+
+      {/* Toast notifications */}
+      {toast && (
+        <div className="toast" style={{ color: toast.color }}>
+          {toast.message}
+        </div>
+      )}
 
       {/* Modal d'ajout d'histoire */}
       {showAddModal && (
-        <div style={modalOverlay} onClick={closeAddModal}>
-          <div
-            style={{
-              ...modalBox,
-              maxWidth: 320,
-              padding: 0,
-              overflow: "hidden",
-              borderRadius: 20,
-              boxShadow: "0 20px 60px rgba(184, 111, 165, 0.4)",
-              animation: "zoomIn 0.3s ease-out",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header du modal */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                padding: "20px 24px 16px 24px",
-                color: "white",
-                textAlign: "center",
-                position: "relative",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  margin: "0 0 6px 0",
-                  color: "white",
-                }}
-              >
-                ✨ Nouveau souvenir
-              </h2>
-              <p
-                style={{
-                  fontSize: 14,
-                  opacity: 0.9,
-                  margin: 0,
-                  color: "white",
-                }}
-              >
-                Partagez un moment précieux
-              </p>
-              <button
-                onClick={closeAddModal}
-                style={{
-                  position: "absolute",
-                  top: 16,
-                  right: 16,
-                  background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 32,
-                  height: 32,
-                  fontSize: 18,
-                  color: "white",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.3)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
-                }
-                title="Fermer"
-              >
-                ×
-              </button>
+        <div className="modal-overlay" onClick={closeAddModal}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">✨</div>
+              <h2 className="modal-title">Nouveau souvenir</h2>
+              <p className="modal-subtitle">Partagez un moment précieux</p>
             </div>
 
-            {/* Contenu du formulaire */}
-            <form style={{ padding: "20px" }}>
-              {/* Titre */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>📝 Titre</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={newStory.title}
-                  onChange={handleStoryChange}
-                  placeholder="Ex: Notre premier rendez-vous..."
-                  style={mobileInput}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label className="form-label">📝 Titre</label>
+              <input
+                type="text"
+                name="title"
+                value={newStory.title}
+                onChange={handleStoryChange}
+                placeholder="Ex: Notre premier rendez-vous..."
+                className="form-input"
+                required
+              />
+            </div>
 
-              {/* Date */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>📅 Date</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={newStory.date}
-                  onChange={handleStoryChange}
-                  style={mobileInput}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label className="form-label">📅 Date</label>
+              <input
+                type="date"
+                name="date"
+                value={newStory.date}
+                onChange={handleStoryChange}
+                className="form-input"
+                required
+              />
+            </div>
 
-              {/* Catégorie */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>🏷️ Catégorie</label>
-                <select
-                  name="category"
-                  value={newStory.category}
-                  onChange={handleStoryChange}
-                  style={mobileInput}
-                >
-                  <option value="moment">💕 Moment spécial</option>
-                  <option value="voyage">✈️ Voyage</option>
-                  <option value="anniversaire">🎂 Anniversaire</option>
-                  <option value="surprise">🎁 Surprise</option>
-                  <option value="quotidien">☀️ Quotidien</option>
-                  <option value="autre">📝 Autre</option>
-                </select>
-              </div>
-
-              {/* Contenu */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>💭 Votre histoire</label>
-                <textarea
-                  name="content"
-                  value={newStory.content}
-                  onChange={handleStoryChange}
-                  placeholder="Racontez ce moment précieux..."
-                  style={mobileTextarea}
-                  required
-                />
-              </div>
-
-              {/* Boutons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  justifyContent: "flex-end",
-                }}
+            <div className="form-group">
+              <label className="form-label">🏷️ Catégorie</label>
+              <select
+                name="category"
+                value={newStory.category}
+                onChange={handleStoryChange}
+                className="form-input"
               >
-                <button
-                  type="button"
-                  onClick={closeAddModal}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 10,
-                    border: "2px solid #ffd6ef",
-                    background: "#fff",
-                    color: "#ff4081",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#fff8fc";
-                    e.currentTarget.style.borderColor = "#ff80ab";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#fff";
-                    e.currentTarget.style.borderColor = "#ffd6ef";
-                  }}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={saveStory}
-                  style={{
-                    padding: "10px 20px",
-                    borderRadius: 10,
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #ff80ab 0%, #ff4081 100%)",
-                    color: "white",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    boxShadow: "0 4px 12px rgba(255, 64, 129, 0.3)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 16px rgba(255, 64, 129, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(255, 64, 129, 0.3)";
-                  }}
-                >
-                  ✨ Sauvegarder
-                </button>
-              </div>
-            </form>
+                <option value="moment">💕 Moment spécial</option>
+                <option value="voyage">✈️ Voyage</option>
+                <option value="anniversaire">🎂 Anniversaire</option>
+                <option value="surprise">🎁 Surprise</option>
+                <option value="quotidien">☀️ Quotidien</option>
+                <option value="autre">📝 Autre</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">💭 Votre histoire</label>
+              <textarea
+                name="content"
+                value={newStory.content}
+                onChange={handleStoryChange}
+                placeholder="Racontez ce moment précieux..."
+                className="form-textarea"
+                required
+              />
+            </div>
+
+            <div className="form-actions">
+              <button className="cancel-button" onClick={closeAddModal}>
+                Annuler
+              </button>
+              <button className="submit-button" onClick={saveStory}>
+                ✨ Sauvegarder
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal d'ajout/modification d'événement important */}
       {showEventModal && (
-        <div style={modalOverlay} onClick={closeEventModal}>
-          <div
-            style={{
-              ...modalBox,
-              maxWidth: 320,
-              padding: 0,
-              overflow: "hidden",
-              borderRadius: 20,
-              boxShadow: "0 20px 60px rgba(184, 111, 165, 0.4)",
-              animation: "zoomIn 0.3s ease-out",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header du modal */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                padding: "20px 24px 16px 24px",
-                color: "white",
-                textAlign: "center",
-                position: "relative",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  margin: "0 0 6px 0",
-                  color: "white",
-                }}
-              >
+        <div className="modal-overlay" onClick={closeEventModal}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">⭐</div>
+              <h2 className="modal-title">
                 {editingEvent ? "✏️ Modifier" : "⭐ Nouvel événement"}
               </h2>
-              <p
-                style={{
-                  fontSize: 14,
-                  opacity: 0.9,
-                  margin: 0,
-                  color: "white",
-                }}
-              >
+              <p className="modal-subtitle">
                 {editingEvent
                   ? "Modifiez cet événement"
                   : "Ajoutez un événement important"}
               </p>
-              <button
-                onClick={closeEventModal}
-                style={{
-                  position: "absolute",
-                  top: 16,
-                  right: 16,
-                  background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 32,
-                  height: 32,
-                  fontSize: 18,
-                  color: "white",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.3)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
-                }
-                title="Fermer"
-              >
-                ×
-              </button>
             </div>
 
-            {/* Contenu du formulaire */}
-            <form style={{ padding: "20px" }}>
-              {/* Titre */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>⭐ Titre</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={newEvent.title}
-                  onChange={handleEventChange}
-                  placeholder="Ex: Première rencontre..."
-                  style={mobileInput}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label className="form-label">⭐ Titre</label>
+              <input
+                type="text"
+                name="title"
+                value={newEvent.title}
+                onChange={handleEventChange}
+                placeholder="Ex: Première rencontre..."
+                className="form-input"
+                required
+              />
+            </div>
 
-              {/* Date */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>📅 Date</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={newEvent.date}
-                  onChange={handleEventChange}
-                  style={mobileInput}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label className="form-label">📅 Date</label>
+              <input
+                type="date"
+                name="date"
+                value={newEvent.date}
+                onChange={handleEventChange}
+                className="form-input"
+                required
+              />
+            </div>
 
-              {/* Icône */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>🎨 Icône</label>
-                <select
-                  name="icon"
-                  value={newEvent.icon}
-                  onChange={handleEventChange}
-                  style={mobileInput}
-                >
-                  <option value="💕">💕 Amour</option>
-                  <option value="👀">👀 Première rencontre</option>
-                  <option value="💋">💋 Premier baiser</option>
-                  <option value="💑">💑 Couple</option>
-                  <option value="✈️">✈️ Voyage</option>
-                  <option value="🎂">🎂 Anniversaire</option>
-                  <option value="💍">💍 Mariage</option>
-                  <option value="🏠">🏠 Maison</option>
-                  <option value="👶">👶 Bébé</option>
-                  <option value="🌟">🌟 Étoile</option>
-                </select>
-              </div>
-
-              {/* Description */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>💭 Description (optionnel)</label>
-                <textarea
-                  name="description"
-                  value={newEvent.description}
-                  onChange={handleEventChange}
-                  placeholder="Décrivez ce moment important..."
-                  style={mobileTextarea}
-                />
-              </div>
-
-              {/* Boutons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  justifyContent: "flex-end",
-                }}
+            <div className="form-group">
+              <label className="form-label">🎨 Icône</label>
+              <select
+                name="icon"
+                value={newEvent.icon}
+                onChange={handleEventChange}
+                className="form-input"
               >
-                <button
-                  type="button"
-                  onClick={closeEventModal}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 10,
-                    border: "2px solid #4caf50",
-                    background: "#fff",
-                    color: "#4caf50",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f1f8e9";
-                    e.currentTarget.style.borderColor = "#45a049";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#fff";
-                    e.currentTarget.style.borderColor = "#4caf50";
-                  }}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={saveEvent}
-                  style={{
-                    padding: "10px 20px",
-                    borderRadius: 10,
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                    color: "white",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 16px rgba(76, 175, 80, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(76, 175, 80, 0.3)";
-                  }}
-                >
-                  {editingEvent ? "✏️ Modifier" : "⭐ Créer"}
-                </button>
-              </div>
-            </form>
+                <option value="💕">💕 Amour</option>
+                <option value="👀">👀 Première rencontre</option>
+                <option value="💋">💋 Premier baiser</option>
+                <option value="💑">💑 Couple</option>
+                <option value="✈️">✈️ Voyage</option>
+                <option value="🎂">🎂 Anniversaire</option>
+                <option value="💍">💍 Mariage</option>
+                <option value="🏠">🏠 Maison</option>
+                <option value="👶">👶 Bébé</option>
+                <option value="🌟">🌟 Étoile</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">💭 Description (optionnel)</label>
+              <textarea
+                name="description"
+                value={newEvent.description}
+                onChange={handleEventChange}
+                placeholder="Décrivez ce moment important..."
+                className="form-textarea"
+              />
+            </div>
+
+            <div className="form-actions">
+              <button className="cancel-button" onClick={closeEventModal}>
+                Annuler
+              </button>
+              <button className="submit-button" onClick={saveEvent}>
+                {editingEvent ? "✏️ Modifier" : "⭐ Créer"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Navigation en bas */}
       <BottomNavigation activePage="story" />
 
-      <style jsx global>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
+      <style jsx>{`
+        .story-container {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #fff0fa 0%, #ffeef8 100%);
+          position: relative;
+          overflow: hidden;
+          font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont,
+            sans-serif;
+          padding-bottom: 100px;
+        }
+
+        .story-container::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(
+              circle at 20% 80%,
+              rgba(255, 182, 193, 0.2) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 80% 20%,
+              rgba(255, 105, 180, 0.15) 0%,
+              transparent 50%
+            );
+          pointer-events: none;
+        }
+
+        .story-header {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          border-bottom: 2px solid rgba(255, 182, 193, 0.3);
+          padding: 28px 24px 24px 24px;
+          text-align: center;
+          box-shadow: 0 4px 30px rgba(255, 182, 193, 0.2);
+          position: relative;
+          z-index: 10;
+        }
+
+        .header-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .header-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+          filter: drop-shadow(0 0 20px rgba(255, 105, 180, 0.3));
+          animation: heartbeat 2s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+          0%,
+          100% {
+            transform: scale(1);
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          50% {
+            transform: scale(1.1);
           }
         }
 
-        @keyframes zoomIn {
+        .header-title {
+          color: #d0488f;
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 10px rgba(208, 72, 143, 0.2);
+        }
+
+        .header-subtitle {
+          color: #b86fa5;
+          font-size: 16px;
+          margin: 0;
+          font-weight: 500;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+          padding: 20px 24px;
+          max-width: 400px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 10;
+        }
+
+        .add-story-button,
+        .add-event-button {
+          flex: 1;
+          background: linear-gradient(135deg, #ff6b9d 0%, #ff4081 100%);
+          color: white;
+          border: none;
+          border-radius: 20px;
+          padding: 16px 20px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 8px 24px rgba(255, 64, 129, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .add-story-button:hover,
+        .add-event-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(255, 64, 129, 0.4);
+        }
+
+        .button-icon {
+          font-size: 18px;
+        }
+
+        .button-text {
+          font-size: 13px;
+        }
+
+        .story-content {
+          max-width: 400px;
+          margin: 0 auto;
+          padding: 0 16px;
+          position: relative;
+          z-index: 10;
+        }
+
+        .loading-state {
+          text-align: center;
+          padding: 80px 20px;
+        }
+
+        .loading-icon {
+          font-size: 48px;
+          margin-bottom: 20px;
+          animation: heartbeat 2s ease-in-out infinite;
+        }
+
+        .loading-title {
+          color: #d0488f;
+          font-size: 18px;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 80px 20px;
+        }
+
+        .empty-icon {
+          font-size: 80px;
+          margin-bottom: 32px;
+          animation: heartbeat 2s ease-in-out infinite;
+          filter: drop-shadow(0 0 20px rgba(255, 105, 180, 0.3));
+        }
+
+        .empty-title {
+          color: #d0488f;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 16px 0;
+        }
+
+        .empty-text {
+          color: #b86fa5;
+          font-size: 16px;
+          margin: 0;
+          line-height: 1.6;
+        }
+
+        .story-book {
+          position: relative;
+          padding: 20px 0;
+        }
+
+        .story-book::before {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: linear-gradient(to bottom, #ff6b9d, #ff4081, #d0488f);
+          border-radius: 2px;
+          transform: translateX(-50%);
+        }
+
+        .story-page {
+          position: relative;
+          margin-bottom: 32px;
+          animation: slideInLeft 0.8s ease-out;
+          animation-fill-mode: both;
+        }
+
+        @keyframes slideInLeft {
           from {
             opacity: 0;
-            transform: scale(0.95);
+            transform: translateX(-30px);
           }
           to {
             opacity: 1;
-            transform: scale(1);
+            transform: translateX(0);
           }
+        }
+
+        .page-ribbon {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          width: 40px;
+          height: 8px;
+          background: linear-gradient(135deg, #ff6b9d 0%, #ff4081 100%);
+          border-radius: 4px;
+          transform: translateX(-50%);
+          box-shadow: 0 2px 8px rgba(255, 64, 129, 0.3);
+          z-index: 2;
+        }
+
+        .page-ribbon::before {
+          content: "";
+          position: absolute;
+          top: -4px;
+          left: -4px;
+          right: -4px;
+          bottom: -4px;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 107, 157, 0.3),
+            rgba(255, 64, 129, 0.3)
+          );
+          border-radius: 6px;
+          z-index: -1;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.5;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+          }
+        }
+
+        .page-content {
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 20px;
+          padding: 28px;
+          margin-top: 16px;
+          border: 2px solid rgba(255, 182, 193, 0.3);
+          box-shadow: 0 8px 32px rgba(255, 182, 193, 0.2);
+          transition: all 0.4s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .page-content::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #ff6b9d 0%, #ff4081 100%);
+          transform: scaleX(0);
+          transition: transform 0.4s ease;
+        }
+
+        .story-page:hover .page-content {
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 0 16px 48px rgba(255, 182, 193, 0.3);
+          border-color: rgba(255, 64, 129, 0.4);
+        }
+
+        .story-page:hover .page-content::before {
+          transform: scaleX(1);
+        }
+
+        .page-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .page-icon {
+          font-size: 28px;
+          flex-shrink: 0;
+          filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.3));
+        }
+
+        .page-meta {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .page-title {
+          color: #d0488f;
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          line-height: 1.3;
+        }
+
+        .page-badges {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .page-badge {
+          background: linear-gradient(
+            135deg,
+            rgba(255, 64, 129, 0.1),
+            rgba(208, 72, 143, 0.1)
+          );
+          color: #d0488f;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 64, 129, 0.2);
+        }
+
+        .page-actions {
+          display: flex;
+          gap: 6px;
+          margin-left: auto;
+        }
+
+        .edit-button,
+        .delete-button {
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(255, 182, 193, 0.3);
+          border-radius: 8px;
+          padding: 6px 8px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .edit-button:hover {
+          background: rgba(255, 64, 129, 0.1);
+          border-color: #ff4081;
+        }
+
+        .delete-button:hover {
+          background: rgba(244, 67, 54, 0.1);
+          border-color: #f44336;
+        }
+
+        .page-date {
+          color: #b86fa5;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .page-description {
+          color: #666;
+          font-size: 15px;
+          line-height: 1.6;
+          margin: 0 0 16px 0;
+        }
+
+        .page-user {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .user-info {
+          background: linear-gradient(
+            135deg,
+            rgba(255, 182, 193, 0.2),
+            rgba(255, 105, 180, 0.2)
+          );
+          color: #d0488f;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 182, 193, 0.3);
+        }
+
+        /* Toast notifications */
+        .toast {
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          color: #d0488f;
+          padding: 16px 24px;
+          border-radius: 16px;
+          font-weight: 600;
+          z-index: 1000;
+          animation: slideInDown 0.3s ease-out;
+          border: 2px solid rgba(255, 182, 193, 0.3);
+          box-shadow: 0 8px 32px rgba(255, 182, 193, 0.3);
         }
 
         @keyframes slideInDown {
           from {
             opacity: 0;
-            transform: translateX(-50%) translateY(-10px);
+            transform: translateX(-50%) translateY(-20px);
           }
           to {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
           }
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(10px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .modal-container {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(30px);
+          border-radius: 24px;
+          padding: 32px;
+          max-width: 400px;
+          width: 100%;
+          border: 2px solid rgba(255, 182, 193, 0.3);
+          box-shadow: 0 20px 60px rgba(255, 182, 193, 0.3);
+        }
+
+        .modal-header {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+
+        .modal-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+          filter: drop-shadow(0 0 20px rgba(255, 105, 180, 0.3));
+        }
+
+        .modal-title {
+          color: #d0488f;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+
+        .modal-subtitle {
+          color: #b86fa5;
+          font-size: 16px;
+          margin: 0;
+        }
+
+        .form-group {
+          margin-bottom: 24px;
+        }
+
+        .form-label {
+          display: block;
+          color: #d0488f;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-textarea {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.8);
+          border: 2px solid rgba(255, 182, 193, 0.3);
+          border-radius: 16px;
+          padding: 16px;
+          color: #333;
+          font-size: 16px;
+          transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+          outline: none;
+          border-color: #ff4081;
+          box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
+        }
+
+        .form-textarea {
+          min-height: 120px;
+          resize: vertical;
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+          color: rgba(208, 72, 143, 0.5);
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 32px;
+        }
+
+        .cancel-button {
+          flex: 1;
+          background: rgba(255, 255, 255, 0.8);
+          color: #b86fa5;
+          border: 2px solid rgba(255, 182, 193, 0.3);
+          border-radius: 16px;
+          padding: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .cancel-button:hover {
+          background: rgba(255, 182, 193, 0.1);
+          border-color: #ff4081;
+        }
+
+        .submit-button {
+          flex: 1;
+          background: linear-gradient(135deg, #ff6b9d 0%, #ff4081 100%);
+          color: white;
+          border: none;
+          border-radius: 16px;
+          padding: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 8px 24px rgba(255, 64, 129, 0.3);
+        }
+
+        .submit-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(255, 64, 129, 0.4);
         }
       `}</style>
     </div>

@@ -194,6 +194,7 @@ const BottomNavigation = ({ activePage }) => {
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "flex-start", // Changed from center to flex-start
                 gap: 12,
                 background: "none",
                 border: "none",
@@ -204,6 +205,7 @@ const BottomNavigation = ({ activePage }) => {
                 color: "#d0488f",
                 fontSize: 16,
                 fontWeight: 500,
+                textAlign: "left", // Added to ensure text alignment
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(255, 200, 220, 0.1)";
@@ -213,7 +215,7 @@ const BottomNavigation = ({ activePage }) => {
               }}
             >
               <span style={{ fontSize: 20 }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ textAlign: "left" }}>{item.label}</span>
             </button>
           ))}
         </div>

@@ -32,20 +32,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/agenda.js"
     ],
-    "/films": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/films.js"
-    ],
     "/planning": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/planning.js"
-    ],
-    "/secrets": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/secrets.js"
     ],
     "/story": [
       "static/chunks/webpack.js",

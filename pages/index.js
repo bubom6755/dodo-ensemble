@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 import BottomNavigation from "../components/BottomNavigation";
+import ToastContainer from "../components/ToastContainer";
+import AnimatedCard from "../components/AnimatedCard";
+import AnimatedButton from "../components/AnimatedButton";
+import PushNotificationManager from "../components/PushNotificationManager";
 
 // ---------------------------------------------------
 // START OF UPDATED STYLE CONSTANTS
@@ -316,9 +320,10 @@ export default function Home() {
   const [citationLoading, setCitationLoading] = useState(false);
 
   // Fonction utilitaire pour afficher une notification
-  function showToast(message, color = "#d0488f") {
-    setToast({ message, color });
-    setTimeout(() => setToast(null), 3000);
+  function showToast(message, type = "pink") {
+    if (window.showToast) {
+      window.showToast({ message, type });
+    }
   }
 
   // Fonction utilitaire pour incrémenter le nombre de relances
@@ -769,7 +774,7 @@ export default function Home() {
         });
       }
       const userId = localStorage.getItem("userId");
-      await supabase.from("subscriptions").upsert({
+      await supabase.from("push_subscriptions").upsert({
         user_id: userId,
         subscription: sub,
         updated_at: new Date().toISOString(),
@@ -990,7 +995,7 @@ export default function Home() {
           }
         `}</style>
       */}
-      {toast && <div style={toastStyle}>{toast.message}</div>}
+      <ToastContainer />
       <main
         style={{
           width: "100%",
@@ -1003,7 +1008,7 @@ export default function Home() {
           flexDirection: "column",
           justifyContent: "flex-start",
           boxSizing: "border-box",
-          paddingBottom: 140,
+          paddingBottom: 450,
         }}
       >
         <div
@@ -1662,7 +1667,6 @@ export default function Home() {
           width: "100%",
           maxWidth: 420,
           margin: "0 auto",
-          marginTop: 80,
           marginBottom: 24,
           display: "flex",
           flexDirection: "column",
@@ -1692,16 +1696,6 @@ export default function Home() {
               Fermer
             </button>
           </div>
-        )}
-        {!notifEnabled && (
-          <button
-            style={mobileBtn}
-            onMouseEnter={() => setBtnHover("acceptNotifs")}
-            onMouseLeave={() => setBtnHover("")}
-            onClick={forceSubscribeToPush}
-          >
-            Accepter les notifications
-          </button>
         )}
         {userId !== "alyssia" && (
           <>
@@ -1789,7 +1783,7 @@ export default function Home() {
         {/* Citation en bas, modifiable uniquement par Victor */}
         <div
           style={{
-            marginTop: 32,
+            marginTop: 8,
             marginBottom: 8,
             minHeight: 40,
             width: "100%",
@@ -1908,6 +1902,7 @@ export default function Home() {
         </div>
       </div>
       <BottomNavigation activePage="home" />
+      <PushNotificationManager />
       <style jsx global>{`
         @keyframes hourglass-flip {
           0% {

@@ -2,10 +2,8 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
   "/story": "pages/story.js",
-  "/planning": "pages/planning.js",
-  "/secrets": "pages/secrets.js",
-  "/films": "pages/films.js",
-  "/agenda": "pages/agenda.js"
+  "/": "pages/index.js",
+  "/agenda": "pages/agenda.js",
+  "/planning": "pages/planning.js"
 }

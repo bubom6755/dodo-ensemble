@@ -154,15 +154,28 @@ export default function Planning() {
   }
 
   async function fetchPlannings() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("weekly_plannings")
-      .select("*")
-      .in("user_id", ALL_USERS)
-      .order("user_id")
-      .order("day_of_week");
+    if (!userId) {
+      console.log("fetchPlannings: userId non défini");
+      return;
+    }
 
-    if (!error) {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("weekly_plannings")
+        .select("*")
+        .in("user_id", ALL_USERS)
+        .order("user_id")
+        .order("day_of_week");
+
+      if (error) {
+        console.error("Erreur fetchPlannings:", error);
+        showToast("Erreur lors du chargement des plannings", "red");
+        return;
+      }
+
+      console.log("fetchPlannings: données reçues:", data);
+
       const planningsByUser = {};
       ALL_USERS.forEach((user) => {
         planningsByUser[user] = {};
@@ -170,20 +183,35 @@ export default function Planning() {
           const planning = data?.find(
             (p) => p.user_id === user && p.day_of_week === day.id
           );
-          planningsByUser[user][day.id] = planning || {
-            user_id: user,
-            day_of_week: day.id,
-            start_time: "",
-            end_time: "",
-            status: "work",
-          };
+
+          // Formater correctement les données pour l'affichage
+          const formattedPlanning = planning
+            ? {
+                ...planning,
+                start_time: planning.start_time || "",
+                end_time: planning.end_time || "",
+                status: planning.status || "work",
+              }
+            : {
+                user_id: user,
+                day_of_week: day.id,
+                start_time: "",
+                end_time: "",
+                status: "work",
+              };
+
+          planningsByUser[user][day.id] = formattedPlanning;
         });
       });
+
+      console.log("fetchPlannings: plannings formatés:", planningsByUser);
       setPlannings(planningsByUser);
-    } else {
-      console.error("Erreur fetchPlannings:", error);
+    } catch (error) {
+      console.error("Erreur inattendue fetchPlannings:", error);
+      showToast("Erreur inattendue lors du chargement", "red");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function openEditModal(day) {
@@ -229,7 +257,32 @@ export default function Planning() {
   }
 
   async function savePlanning() {
-    if (!editingDay) return;
+    console.log("savePlanning appelée avec:", { editingDay, userId, editForm });
+
+    if (!editingDay || !userId) {
+      console.log("savePlanning: données manquantes", { editingDay, userId });
+      showToast("Erreur: données manquantes", "red");
+      return;
+    }
+
+    // Validation des données
+    if (editForm.status !== "rest") {
+      if (!editForm.start_time || !editForm.end_time) {
+        console.log("savePlanning: heures manquantes", editForm);
+        showToast("Veuillez remplir les heures de début et de fin", "red");
+        return;
+      }
+
+      // Vérifier que l'heure de fin est après l'heure de début
+      if (editForm.start_time >= editForm.end_time) {
+        console.log("savePlanning: heures invalides", {
+          start: editForm.start_time,
+          end: editForm.end_time,
+        });
+        showToast("L'heure de fin doit être après l'heure de début", "red");
+        return;
+      }
+    }
 
     const planningData = {
       user_id: userId,
@@ -239,33 +292,69 @@ export default function Planning() {
     };
 
     // Ajouter les horaires seulement si ce n'est pas repos
+    // Pour PostgreSQL TIME, on envoie directement les valeurs HH:MM
     if (editForm.status !== "rest") {
-      planningData.start_time = editForm.start_time || null;
-      planningData.end_time = editForm.end_time || null;
+      planningData.start_time = editForm.start_time;
+      planningData.end_time = editForm.end_time;
     } else {
       planningData.start_time = null;
       planningData.end_time = null;
     }
 
-    // Utiliser upsert pour remplacer ou créer
-    const { error } = await supabase
-      .from("weekly_plannings")
-      .upsert(planningData, {
-        onConflict: "user_id,day_of_week",
-      });
+    console.log("savePlanning: données à sauvegarder:", planningData);
 
-    if (error) {
-      console.error("Erreur savePlanning:", error);
-      showToast("Erreur lors de la sauvegarde", "red");
-      return;
+    try {
+      // Vérifier si l'enregistrement existe déjà
+      const { data: existingData, error: checkError } = await supabase
+        .from("weekly_plannings")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("day_of_week", editingDay.id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("Erreur lors de la vérification:", checkError);
+        showToast("Erreur lors de la vérification des données", "red");
+        return;
+      }
+
+      let result;
+      if (existingData) {
+        // Mise à jour
+        result = await supabase
+          .from("weekly_plannings")
+          .update(planningData)
+          .eq("user_id", userId)
+          .eq("day_of_week", editingDay.id);
+      } else {
+        // Insertion
+        result = await supabase.from("weekly_plannings").insert(planningData);
+      }
+
+      const { error } = result;
+
+      if (error) {
+        console.error("Erreur savePlanning:", error);
+        showToast("Erreur lors de la sauvegarde: " + error.message, "red");
+        return;
+      }
+
+      console.log("savePlanning: succès");
+      showToast("Planning sauvegardé ! ✨");
+      closeEditModal();
+      await fetchPlannings(); // Attendre que les données soient rechargées
+    } catch (error) {
+      console.error("Erreur inattendue savePlanning:", error);
+      showToast("Erreur inattendue lors de la sauvegarde", "red");
     }
-
-    showToast("Planning sauvegardé ! ✨");
-    closeEditModal();
-    fetchPlannings();
   }
 
   async function saveBulkPlanning() {
+    if (!userId) {
+      showToast("Erreur: utilisateur non connecté", "red");
+      return;
+    }
+
     const selectedDays = Object.keys(bulkEditForm.apply_to_days).filter(
       (day) => bulkEditForm.apply_to_days[day]
     );
@@ -275,6 +364,20 @@ export default function Planning() {
       return;
     }
 
+    // Validation des données
+    if (bulkEditForm.status !== "rest") {
+      if (!bulkEditForm.start_time || !bulkEditForm.end_time) {
+        showToast("Veuillez remplir les heures de début et de fin", "red");
+        return;
+      }
+
+      // Vérifier que l'heure de fin est après l'heure de début
+      if (bulkEditForm.start_time >= bulkEditForm.end_time) {
+        showToast("L'heure de fin doit être après l'heure de début", "red");
+        return;
+      }
+    }
+
     const planningData = {
       user_id: userId,
       status: bulkEditForm.status,
@@ -282,41 +385,73 @@ export default function Planning() {
     };
 
     // Ajouter les horaires seulement si ce n'est pas repos
+    // Pour PostgreSQL TIME, on envoie directement les valeurs HH:MM
     if (bulkEditForm.status !== "rest") {
-      planningData.start_time = bulkEditForm.start_time || null;
-      planningData.end_time = bulkEditForm.end_time || null;
+      planningData.start_time = bulkEditForm.start_time;
+      planningData.end_time = bulkEditForm.end_time;
     } else {
       planningData.start_time = null;
       planningData.end_time = null;
     }
 
-    // Sauvegarder chaque jour sélectionné avec upsert
-    const promises = selectedDays.map(async (dayId) => {
-      const dayData = { ...planningData, day_of_week: dayId };
+    try {
+      // Sauvegarder chaque jour sélectionné
+      const promises = selectedDays.map(async (dayId) => {
+        const dayData = { ...planningData, day_of_week: dayId };
 
-      const { error } = await supabase
-        .from("weekly_plannings")
-        .upsert(dayData, {
-          onConflict: "user_id,day_of_week",
-        });
+        // Vérifier si l'enregistrement existe déjà
+        const { data: existingData, error: checkError } = await supabase
+          .from("weekly_plannings")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("day_of_week", dayId)
+          .maybeSingle();
 
-      if (error) {
-        console.error(`Erreur savePlanning pour ${dayId}:`, error);
-        return { success: false, day: dayId, error };
+        if (checkError) {
+          console.error(
+            `Erreur lors de la vérification pour ${dayId}:`,
+            checkError
+          );
+          return { success: false, day: dayId, error: checkError };
+        }
+
+        let result;
+        if (existingData) {
+          // Mise à jour
+          result = await supabase
+            .from("weekly_plannings")
+            .update(dayData)
+            .eq("user_id", userId)
+            .eq("day_of_week", dayId);
+        } else {
+          // Insertion
+          result = await supabase.from("weekly_plannings").insert(dayData);
+        }
+
+        const { error } = result;
+
+        if (error) {
+          console.error(`Erreur savePlanning pour ${dayId}:`, error);
+          return { success: false, day: dayId, error };
+        }
+
+        return { success: true, day: dayId };
+      });
+
+      const results = await Promise.all(promises);
+      const failedDays = results.filter((r) => !r.success);
+
+      if (failedDays.length > 0) {
+        console.error("Échecs de sauvegarde:", failedDays);
+        showToast(`Erreur pour ${failedDays.length} jour(s)`, "red");
+      } else {
+        showToast(`${selectedDays.length} jour(s) sauvegardé(s) ! ✨`);
+        closeBulkEditModal();
+        await fetchPlannings(); // Attendre que les données soient rechargées
       }
-
-      return { success: true, day: dayId };
-    });
-
-    const results = await Promise.all(promises);
-    const failedDays = results.filter((r) => !r.success);
-
-    if (failedDays.length > 0) {
-      showToast(`Erreur pour ${failedDays.length} jour(s)`, "red");
-    } else {
-      showToast(`${selectedDays.length} jour(s) sauvegardé(s) ! ✨`);
-      closeBulkEditModal();
-      fetchPlannings();
+    } catch (error) {
+      console.error("Erreur inattendue saveBulkPlanning:", error);
+      showToast("Erreur inattendue lors de la sauvegarde en masse", "red");
     }
   }
 
