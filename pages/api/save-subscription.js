@@ -51,7 +51,6 @@ export default async function handler(req, res) {
       .from("push_subscriptions")
       .upsert(subscriptionData, {
         onConflict: "user_id",
-        ignoreDuplicates: false,
       })
       .select();
 

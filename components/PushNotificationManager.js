@@ -147,6 +147,29 @@ const PushNotificationManager = () => {
       });
       addLog("✅ Subscription créée", "success");
 
+      // Vérifier que la subscription a bien les clés (important pour Safari iOS)
+      addLog("🔍 Vérification des clés de la subscription...", "info");
+      if (
+        !subscription.keys ||
+        !subscription.keys.p256dh ||
+        !subscription.keys.auth
+      ) {
+        addLog("⚠️ Clés manquantes, attente de 2 secondes...", "info");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Vérifier à nouveau
+        if (
+          !subscription.keys ||
+          !subscription.keys.p256dh ||
+          !subscription.keys.auth
+        ) {
+          throw new Error(
+            "Les clés de la subscription ne sont pas disponibles. Problème Safari iOS."
+          );
+        }
+      }
+      addLog("✅ Clés de la subscription vérifiées", "success");
+
       // Sauvegarder en base
       const userId = localStorage.getItem("userId");
       if (!userId) {
@@ -165,6 +188,18 @@ const PushNotificationManager = () => {
         `🔑 Clés: ${subscription.keys ? "Présentes" : "Manquantes"}`,
         "info"
       );
+
+      // Vérification détaillée des clés
+      if (subscription.keys) {
+        addLog(
+          `🔑 p256dh: ${subscription.keys.p256dh ? "Présent" : "Manquant"}`,
+          "info"
+        );
+        addLog(
+          `🔑 auth: ${subscription.keys.auth ? "Présent" : "Manquant"}`,
+          "info"
+        );
+      }
 
       const requestData = {
         subscription: subscription,
