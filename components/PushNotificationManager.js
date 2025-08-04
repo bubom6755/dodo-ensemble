@@ -10,8 +10,30 @@ const PushNotificationManager = () => {
   useEffect(() => {
     // Check if service worker and push manager are supported
     if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      checkSubscriptionStatus();
+      // Vérification spécifique pour Safari iOS
+      const isSafariIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        /Safari/.test(navigator.userAgent) &&
+        !/Chrome/.test(navigator.userAgent);
+
+      if (isSafariIOS) {
+        console.log("⚠️ Safari iOS détecté - notifications push limitées");
+        // Sur Safari iOS, les notifications push ne fonctionnent que si l'app est installée en PWA
+        if (window.navigator.standalone) {
+          console.log("✅ App installée en PWA - notifications supportées");
+          setIsSupported(true);
+          checkSubscriptionStatus();
+        } else {
+          console.log(
+            "❌ App non installée en PWA - notifications non supportées sur Safari iOS"
+          );
+          setIsSupported(false);
+        }
+      } else {
+        console.log("✅ Navigateur supporté - notifications disponibles");
+        setIsSupported(true);
+        checkSubscriptionStatus();
+      }
     }
   }, []);
 
@@ -84,34 +106,16 @@ const PushNotificationManager = () => {
       const registration = await navigator.serviceWorker.register("/sw.js");
       console.log("✅ Service worker enregistré:", registration);
 
-      // Attendre que le service worker soit actif
-      if (registration.installing || registration.waiting) {
-        console.log("⏳ Attente de l'activation du service worker...");
-        await new Promise((resolve) => {
-          const serviceWorker = registration.installing || registration.waiting;
-          serviceWorker.addEventListener("statechange", () => {
-            if (serviceWorker.state === "activated") {
-              console.log("✅ Service worker activé");
-              resolve();
-            }
-          });
-        });
-      }
-
-      console.log("🔍 Vérification du service worker actif...");
-      const activeRegistration = await navigator.serviceWorker.ready;
-      console.log("✅ Service worker prêt:", activeRegistration);
-
       const existingSubscription =
-        await activeRegistration.pushManager.getSubscription();
+        await registration.pushManager.getSubscription();
 
       if (existingSubscription) {
         console.log("🔄 Désabonnement de l'ancienne subscription...");
         await existingSubscription.unsubscribe();
       }
 
-      console.log("🔑 Création de la nouvelle subscription...");
-      const newSubscription = await activeRegistration.pushManager.subscribe({
+      console.log("🔑 Création de la nouvelle subscription avec VAPID...");
+      const newSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
@@ -252,11 +256,26 @@ const PushNotificationManager = () => {
                 lineHeight: "1.4",
               }}
             >
-              {typeof window !== "undefined" &&
-              "Notification" in window &&
-              Notification.permission === "denied"
-                ? "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur."
-                : "Les notifications push ne sont pas supportées sur votre appareil ou navigateur."}
+              {(() => {
+                if (
+                  typeof window !== "undefined" &&
+                  "Notification" in window &&
+                  Notification.permission === "denied"
+                ) {
+                  return "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur.";
+                }
+
+                // Vérification Safari iOS
+                const isSafariIOS =
+                  /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+                  /Safari/.test(navigator.userAgent) &&
+                  !/Chrome/.test(navigator.userAgent);
+                if (isSafariIOS && !window.navigator.standalone) {
+                  return "Sur Safari iOS, les notifications push ne fonctionnent que si l'app est installée. Utilisez le bouton 'Partager' puis 'Sur l'écran d'accueil'.";
+                }
+
+                return "Les notifications push ne sont pas supportées sur votre appareil ou navigateur.";
+              })()}
             </p>
           </div>
         </div>
