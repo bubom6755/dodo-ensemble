@@ -7,9 +7,10 @@ export default function Document() {
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar" content="#fce4ec" />
         <meta name="apple-mobile-web-app-title" content="Dodo Ensemble" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <meta name="theme-color" content="#ff4081" />
+        <meta name="theme-color" content="#fce4ec" />
         <meta
           name="description"
           content="Application pour couples - Questions du jour, événements et plus"
@@ -54,7 +55,7 @@ export default function Document() {
         <link rel="apple-touch-icon" sizes="57x57" href="/icon-57x57.png" />
 
         {/* Microsoft tiles */}
-        <meta name="msapplication-TileColor" content="#ff4081" />
+        <meta name="msapplication-TileColor" content="#fce4ec" />
         <meta name="msapplication-TileImage" content="/icon-144x144.png" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </Head>

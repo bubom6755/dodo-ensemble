@@ -249,8 +249,8 @@ a {
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary-color: #ff80ab;
-    --secondary-color: #ff4081;
+    --primary-color: #ff4081;
+    --secondary-color: #ff80ab;
     --text-color: #fff;
     --background-color: #1a1a1a;
     --card-background: #2d2d2d;
