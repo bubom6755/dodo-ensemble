@@ -530,6 +530,24 @@ export default function Home() {
     if (error) {
       setEventFormError("Erreur lors de l'enregistrement");
     } else {
+      // Notification automatique pour le nouvel événement
+      const otherUser = ALL_USERS.find((u) => u !== userId);
+      const eventDate = new Date(dateStr);
+      const formattedDate = eventDate.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      sendNativePushNotification({
+        title: "Nouvel événement créé !",
+        message: `${displayUserName(userId)} a créé un nouvel événement : "${
+          eventForm.title
+        }" le ${formattedDate}${eventForm.time ? ` à ${eventForm.time}` : ""}`,
+        targetUserId: otherUser,
+      });
+
       setShowEventForm(false);
       fetchEvents();
     }

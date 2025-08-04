@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabaseClient";
 
+const VAPID_PUBLIC_KEY =
+  "BInzKFIkdJ5js3aBJbZfpJ-JT7Yyqoj0QNMHt8hQLCyRiGUhEu3Al4WbVROXfUaQ02zZeL6RO4UuaMP2lLYbiGA";
+
 const AdminPanel = ({ userId, onClose }) => {
   const [activeTab, setActiveTab] = useState("notifications");
   const [loading, setLoading] = useState(false);
@@ -233,12 +236,13 @@ const AdminPanel = ({ userId, onClose }) => {
   };
 
   const forceSubscribeToPush = async () => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      alert("Notifications push non supportées");
-      return;
-    }
+    setLoading(true);
     try {
+      if (typeof window === "undefined") return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        alert("Notifications push non supportées");
+        return;
+      }
       const reg = await navigator.serviceWorker.register("/sw.js");
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
@@ -249,12 +253,9 @@ const AdminPanel = ({ userId, onClose }) => {
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            "BInzKFIkdJ5js3aBJbZfpJ-JT7Yyqoj0QNMHt8hQLCyRiGUhEu3Al4WbVROXfUaQ02zZeL6RO4UuaMP2lLYbiGA"
-          ),
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
-      const userId = localStorage.getItem("userId");
       await supabase.from("push_subscriptions").upsert({
         user_id: userId,
         subscription: sub,
@@ -263,6 +264,30 @@ const AdminPanel = ({ userId, onClose }) => {
       alert("Notifications activées !");
     } catch (e) {
       alert("Erreur lors de l'abonnement");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerEventReminders = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/check-event-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`✅ ${result.message}`);
+      } else {
+        alert(`❌ Erreur: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`❌ Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -325,6 +350,9 @@ const AdminPanel = ({ userId, onClose }) => {
         </button>
         <button style={buttonStyle} onClick={showMySubscription}>
           Afficher ma subscription
+        </button>
+        <button style={buttonStyle} onClick={triggerEventReminders}>
+          Déclencher les rappels d'événements
         </button>
       </div>
 
