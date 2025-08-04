@@ -66,14 +66,13 @@ const PushNotificationManager = () => {
       addLog(`📋 Permission actuelle: ${permission}`, "info");
 
       if (permission === "denied") {
-        addLog("❌ Notifications bloquées par l'utilisateur", "error");
+        addLog("❌ Notifications bloquées", "error");
         setIsSupported(false);
         return;
       }
 
+      // Vérifier si on a déjà une subscription
       const registration = await navigator.serviceWorker.ready;
-      addLog("✅ Service worker prêt", "success");
-
       const existingSubscription =
         await registration.pushManager.getSubscription();
 
@@ -85,10 +84,7 @@ const PushNotificationManager = () => {
       setIsSubscribed(!!existingSubscription);
       setSubscription(existingSubscription);
     } catch (error) {
-      addLog(
-        `❌ Erreur lors de la vérification du statut: ${error.message}`,
-        "error"
-      );
+      addLog(`❌ Erreur: ${error.message}`, "error");
       setIsSupported(false);
     }
   };
@@ -123,58 +119,30 @@ const PushNotificationManager = () => {
     try {
       addLog("🔔 Début de l'abonnement aux notifications...", "info");
 
-      // Vérifier les permissions d'abord
-      if (
-        typeof window !== "undefined" &&
-        "Notification" in window &&
-        Notification.permission === "denied"
-      ) {
-        throw new Error(
-          "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur."
-        );
+      // Demander la permission d'abord
+      addLog("📋 Demande d'autorisation...", "info");
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        throw new Error("Permission refusée pour les notifications");
       }
 
+      addLog("✅ Permission accordée", "success");
+
+      // Enregistrer le service worker
       addLog("📱 Enregistrement du service worker...", "info");
       const registration = await navigator.serviceWorker.register("/sw.js");
       addLog("✅ Service worker enregistré", "success");
-      addLog(
-        `📊 État du service worker: ${
-          registration.active ? "Actif" : "Non actif"
-        }`,
-        "info"
-      );
 
-      // Attendre que le service worker soit prêt
-      addLog("⏳ Attente que le service worker soit prêt...", "info");
-      const readyRegistration = await navigator.serviceWorker.ready;
-      addLog("✅ Service worker prêt", "success");
-
-      const existingSubscription =
-        await readyRegistration.pushManager.getSubscription();
-
-      if (existingSubscription) {
-        addLog("🔄 Désabonnement de l'ancienne subscription...", "info");
-        await existingSubscription.unsubscribe();
-      }
-
-      addLog("🔑 Création de la nouvelle subscription avec VAPID...", "info");
-      addLog(
-        `🔑 Clé VAPID publique: ${VAPID_PUBLIC_KEY.substring(0, 20)}...`,
-        "info"
-      );
-
-      // Vérifier que la clé VAPID est valide
-      if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length < 80) {
-        throw new Error("Clé VAPID invalide");
-      }
-
-      const newSubscription = await readyRegistration.pushManager.subscribe({
+      // Créer la subscription
+      addLog("🔑 Création de la subscription...", "info");
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-      addLog("✅ Nouvelle subscription créée", "success");
+      addLog("✅ Subscription créée", "success");
 
-      // Save subscription to database
+      // Sauvegarder en base
       const userId = localStorage.getItem("userId");
       if (!userId) {
         throw new Error(
@@ -182,83 +150,31 @@ const PushNotificationManager = () => {
         );
       }
 
-      addLog("💾 Sauvegarde de la subscription en base...", "info");
+      addLog("💾 Sauvegarde en base...", "info");
       const response = await fetch("/api/save-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subscription: newSubscription,
+          subscription: subscription,
           userId: userId,
         }),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        addLog("✅ Subscription sauvegardée", "success");
-
+        addLog("✅ Notifications activées avec succès !", "success");
         setIsSubscribed(true);
-        setSubscription(newSubscription);
+        setSubscription(subscription);
         window.showToast?.({
           message: "Notifications activées ! 🎉",
           type: "success",
         });
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        addLog(
-          `❌ Erreur lors de la sauvegarde: ${
-            errorData.error || response.statusText
-          }`,
-          "error"
-        );
-        throw new Error(
-          `Erreur serveur: ${errorData.error || response.statusText}`
-        );
+        throw new Error("Erreur lors de la sauvegarde");
       }
     } catch (error) {
-      addLog(
-        `❌ Erreur détaillée lors de l'abonnement: ${error.message}`,
-        "error"
-      );
-
-      // Messages d'erreur plus spécifiques
-      let errorMessage = "Erreur lors de l'activation des notifications";
-
-      if (error.message.includes("bloquées")) {
-        errorMessage =
-          "Les notifications sont bloquées. Veuillez les autoriser dans les paramètres de votre navigateur.";
-      } else if (error.message.includes("connecté")) {
-        errorMessage =
-          "Vous devez être connecté pour activer les notifications";
-      } else if (error.message.includes("serveur")) {
-        errorMessage = error.message;
-      } else if (error.name === "NotAllowedError") {
-        errorMessage =
-          "Permission refusée. Veuillez autoriser les notifications.";
-      } else if (error.name === "NotSupportedError") {
-        errorMessage =
-          "Les notifications push ne sont pas supportées sur votre appareil.";
-      } else if (error.name === "InvalidStateError") {
-        errorMessage =
-          "État invalide. Le service worker n'est pas prêt. Essayez de rafraîchir la page et réessayez.";
-        // Proposer une réinitialisation automatique
-        if (
-          window.confirm(
-            "Voulez-vous réinitialiser le service worker et réessayer ?"
-          )
-        ) {
-          await resetServiceWorker();
-          // Attendre un peu puis réessayer
-          setTimeout(() => {
-            subscribeToPush();
-          }, 1000);
-          return; // Sortir de la fonction pour éviter l'affichage de l'erreur
-        }
-      } else if (error.name === "NetworkError") {
-        errorMessage = "Erreur réseau. Vérifiez votre connexion internet.";
-      }
-
+      addLog(`❌ Erreur: ${error.message}`, "error");
       window.showToast?.({
-        message: errorMessage,
+        message: error.message,
         type: "error",
       });
     } finally {
