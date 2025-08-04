@@ -134,6 +134,11 @@ const PushNotificationManager = () => {
       const registration = await navigator.serviceWorker.register("/sw.js");
       addLog("✅ Service worker enregistré", "success");
 
+      // Attendre que le service worker soit actif
+      addLog("⏳ Attente que le service worker soit actif...", "info");
+      await navigator.serviceWorker.ready;
+      addLog("✅ Service worker actif", "success");
+
       // Créer la subscription
       addLog("🔑 Création de la subscription...", "info");
       const subscription = await registration.pushManager.subscribe({
