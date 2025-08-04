@@ -6,6 +6,19 @@ const PushNotificationManager = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Fonction pour ajouter des logs à l'interface
+  const addLog = (message, type = "info") => {
+    const timestamp = new Date().toLocaleTimeString();
+    const newLog = { message, type, timestamp };
+    setLogs((prev) => [...prev, newLog]);
+    // Garder seulement les 20 derniers logs
+    if (logs.length > 20) {
+      setLogs((prev) => prev.slice(-20));
+    }
+  };
 
   useEffect(() => {
     // Check if service worker and push manager are supported
@@ -39,41 +52,60 @@ const PushNotificationManager = () => {
 
   const checkSubscriptionStatus = async () => {
     try {
-      console.log("🔍 Vérification du statut des notifications...");
+      addLog("🔍 Vérification du statut des notifications...", "info");
 
       // Vérifier si les notifications sont supportées
       if (typeof window === "undefined" || !("Notification" in window)) {
-        console.log("❌ Notifications non supportées");
+        addLog("❌ Notifications non supportées", "error");
         setIsSupported(false);
         return;
       }
 
       // Vérifier les permissions
       const permission = Notification.permission;
-      console.log("📋 Permission actuelle:", permission);
+      addLog(`📋 Permission actuelle: ${permission}`, "info");
 
       if (permission === "denied") {
-        console.log("❌ Notifications bloquées par l'utilisateur");
+        addLog("❌ Notifications bloquées par l'utilisateur", "error");
         setIsSupported(false);
         return;
       }
 
       const registration = await navigator.serviceWorker.ready;
-      console.log("✅ Service worker prêt:", registration);
+      addLog("✅ Service worker prêt", "success");
 
       const existingSubscription =
         await registration.pushManager.getSubscription();
 
-      console.log(
-        "📱 Subscription existante:",
-        existingSubscription ? "Oui" : "Non"
+      addLog(
+        `📱 Subscription existante: ${existingSubscription ? "Oui" : "Non"}`,
+        "info"
       );
 
       setIsSubscribed(!!existingSubscription);
       setSubscription(existingSubscription);
     } catch (error) {
-      console.error("❌ Erreur lors de la vérification du statut:", error);
+      addLog(
+        `❌ Erreur lors de la vérification du statut: ${error.message}`,
+        "error"
+      );
       setIsSupported(false);
+    }
+  };
+
+  const resetServiceWorker = async () => {
+    try {
+      addLog("🔄 Réinitialisation du service worker...", "info");
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let registration of registrations) {
+        await registration.unregister();
+      }
+      addLog("✅ Service workers supprimés", "success");
+    } catch (error) {
+      addLog(
+        `❌ Erreur lors de la réinitialisation: ${error.message}`,
+        "error"
+      );
     }
   };
 
@@ -89,7 +121,7 @@ const PushNotificationManager = () => {
 
     setIsLoading(true);
     try {
-      console.log("🔔 Début de l'abonnement aux notifications...");
+      addLog("🔔 Début de l'abonnement aux notifications...", "info");
 
       // Vérifier les permissions d'abord
       if (
@@ -102,24 +134,45 @@ const PushNotificationManager = () => {
         );
       }
 
-      console.log("📱 Enregistrement du service worker...");
+      addLog("📱 Enregistrement du service worker...", "info");
       const registration = await navigator.serviceWorker.register("/sw.js");
-      console.log("✅ Service worker enregistré:", registration);
+      addLog("✅ Service worker enregistré", "success");
+      addLog(
+        `📊 État du service worker: ${
+          registration.active ? "Actif" : "Non actif"
+        }`,
+        "info"
+      );
+
+      // Attendre que le service worker soit prêt
+      addLog("⏳ Attente que le service worker soit prêt...", "info");
+      const readyRegistration = await navigator.serviceWorker.ready;
+      addLog("✅ Service worker prêt", "success");
 
       const existingSubscription =
-        await registration.pushManager.getSubscription();
+        await readyRegistration.pushManager.getSubscription();
 
       if (existingSubscription) {
-        console.log("🔄 Désabonnement de l'ancienne subscription...");
+        addLog("🔄 Désabonnement de l'ancienne subscription...", "info");
         await existingSubscription.unsubscribe();
       }
 
-      console.log("🔑 Création de la nouvelle subscription avec VAPID...");
-      const newSubscription = await registration.pushManager.subscribe({
+      addLog("🔑 Création de la nouvelle subscription avec VAPID...", "info");
+      addLog(
+        `🔑 Clé VAPID publique: ${VAPID_PUBLIC_KEY.substring(0, 20)}...`,
+        "info"
+      );
+
+      // Vérifier que la clé VAPID est valide
+      if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length < 80) {
+        throw new Error("Clé VAPID invalide");
+      }
+
+      const newSubscription = await readyRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-      console.log("✅ Nouvelle subscription créée:", newSubscription);
+      addLog("✅ Nouvelle subscription créée", "success");
 
       // Save subscription to database
       const userId = localStorage.getItem("userId");
@@ -129,7 +182,7 @@ const PushNotificationManager = () => {
         );
       }
 
-      console.log("💾 Sauvegarde de la subscription en base...");
+      addLog("💾 Sauvegarde de la subscription en base...", "info");
       const response = await fetch("/api/save-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -141,7 +194,7 @@ const PushNotificationManager = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ Subscription sauvegardée:", result);
+        addLog("✅ Subscription sauvegardée", "success");
 
         setIsSubscribed(true);
         setSubscription(newSubscription);
@@ -151,13 +204,21 @@ const PushNotificationManager = () => {
         });
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Erreur lors de la sauvegarde:", errorData);
+        addLog(
+          `❌ Erreur lors de la sauvegarde: ${
+            errorData.error || response.statusText
+          }`,
+          "error"
+        );
         throw new Error(
           `Erreur serveur: ${errorData.error || response.statusText}`
         );
       }
     } catch (error) {
-      console.error("❌ Erreur détaillée lors de l'abonnement:", error);
+      addLog(
+        `❌ Erreur détaillée lors de l'abonnement: ${error.message}`,
+        "error"
+      );
 
       // Messages d'erreur plus spécifiques
       let errorMessage = "Erreur lors de l'activation des notifications";
@@ -177,7 +238,21 @@ const PushNotificationManager = () => {
         errorMessage =
           "Les notifications push ne sont pas supportées sur votre appareil.";
       } else if (error.name === "InvalidStateError") {
-        errorMessage = "État invalide. Veuillez réessayer.";
+        errorMessage =
+          "État invalide. Le service worker n'est pas prêt. Essayez de rafraîchir la page et réessayez.";
+        // Proposer une réinitialisation automatique
+        if (
+          window.confirm(
+            "Voulez-vous réinitialiser le service worker et réessayer ?"
+          )
+        ) {
+          await resetServiceWorker();
+          // Attendre un peu puis réessayer
+          setTimeout(() => {
+            subscribeToPush();
+          }, 1000);
+          return; // Sortir de la fonction pour éviter l'affichage de l'erreur
+        }
       } else if (error.name === "NetworkError") {
         errorMessage = "Erreur réseau. Vérifiez votre connexion internet.";
       }
@@ -384,6 +459,68 @@ const PushNotificationManager = () => {
           <>{isSubscribed ? "🔕 Désactiver" : "🔔 Activer"}</>
         )}
       </button>
+
+      {/* Bouton pour afficher/masquer les logs */}
+      <button
+        onClick={() => setShowLogs(!showLogs)}
+        style={{
+          background: "none",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          fontSize: "12px",
+          color: "#666",
+          cursor: "pointer",
+          marginTop: "12px",
+          width: "100%",
+        }}
+      >
+        {showLogs ? "📋 Masquer les logs" : "📋 Afficher les logs"}
+      </button>
+
+      {/* Affichage des logs */}
+      {showLogs && logs.length > 0 && (
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "12px",
+            background: "#f8f9fa",
+            borderRadius: "8px",
+            border: "1px solid #e9ecef",
+            maxHeight: "200px",
+            overflowY: "auto",
+            fontSize: "11px",
+            fontFamily: "monospace",
+          }}
+        >
+          <div
+            style={{ marginBottom: "8px", fontWeight: "bold", color: "#333" }}
+          >
+            📋 Logs détaillés ({logs.length} entrées)
+          </div>
+          {logs.map((log, index) => (
+            <div
+              key={index}
+              style={{
+                marginBottom: "4px",
+                padding: "2px 0",
+                borderBottom: "1px solid #eee",
+                color:
+                  log.type === "error"
+                    ? "#dc3545"
+                    : log.type === "success"
+                    ? "#28a745"
+                    : "#666",
+              }}
+            >
+              <span style={{ color: "#999", fontSize: "10px" }}>
+                {log.timestamp}
+              </span>
+              <span style={{ marginLeft: "8px" }}>{log.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes spin {
