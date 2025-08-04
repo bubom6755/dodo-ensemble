@@ -6,6 +6,7 @@ import ToastContainer from "../components/ToastContainer";
 import AnimatedCard from "../components/AnimatedCard";
 import AnimatedButton from "../components/AnimatedButton";
 import PushNotificationManager from "../components/PushNotificationManager";
+import AdminPanel from "../components/AdminPanel";
 
 // ---------------------------------------------------
 // START OF UPDATED STYLE CONSTANTS
@@ -16,7 +17,7 @@ const mobileMainBg = {
   background: "linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)", // Lighter pinks
   padding: "0 8px",
   boxSizing: "border-box",
-  maxWidth: 420,
+  maxWidth: "100vw", // Utilise toute la largeur de l'écran
   width: "100%",
   margin: "0 auto",
   height: "220vh",
@@ -29,7 +30,7 @@ const mobileCard = {
   padding: 24, // Slightly more padding for breathability
   margin: "24px 0", // More margin top/bottom
   width: "100%",
-  maxWidth: 480,
+  maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
   marginLeft: "auto",
   marginRight: "auto",
   boxSizing: "border-box",
@@ -163,7 +164,7 @@ const calendarStyle = {
   boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // Consistent shadow
   padding: 28, // More padding
   margin: "32px auto 0 auto",
-  maxWidth: 420,
+  maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
 };
 const calendarHeader = {
   display: "flex",
@@ -309,6 +310,7 @@ export default function Home() {
   const [userName, setUserName] = useState("");
   const [showSubJson, setShowSubJson] = useState(false);
   const [subJson, setSubJson] = useState("");
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   // Citation depuis la BDD
   const [citation, setCitation] = useState(
@@ -333,6 +335,11 @@ export default function Home() {
       return { ...prev, [key]: (prev[key] || 0) + 1 };
     });
   }
+
+  // Fonction pour ouvrir le panel admin
+  const handleAdminClick = () => {
+    setShowAdminPanel(true);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -999,7 +1006,7 @@ export default function Home() {
       <main
         style={{
           width: "100%",
-          maxWidth: 480,
+          maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
           margin: "auto",
           padding: 0,
           fontFamily: "sans-serif",
@@ -1113,25 +1120,6 @@ export default function Home() {
                 onClick={submitReason}
               >
                 Valider
-              </button>
-            </div>
-          )}
-          {userId === "victor" && (
-            <div style={{ marginTop: 32 }}>
-              <button
-                style={{
-                  ...bigBtn,
-                  background: "#fff",
-                  color: "#ff80ab",
-                  border: "1.5px solid #ff80ab",
-                  boxShadow: "none",
-                  fontSize: 18,
-                }}
-                onMouseEnter={() => setBtnHover("reset")}
-                onMouseLeave={() => setBtnHover("")}
-                onClick={resetToday}
-              >
-                Remettre à zéro la réponse du jour
               </button>
             </div>
           )}
@@ -1665,7 +1653,7 @@ export default function Home() {
       <div
         style={{
           width: "100%",
-          maxWidth: 420,
+          maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
           margin: "0 auto",
           marginBottom: 24,
           display: "flex",
@@ -1679,107 +1667,6 @@ export default function Home() {
           boxSizing: "border-box",
         }}
       >
-        {userId !== "alyssia" && showSubJson && (
-          <div style={{ width: "100%", marginBottom: 16 }}>
-            <textarea
-              style={mobileTextarea}
-              value={subJson}
-              readOnly
-              onFocus={(e) => e.target.select()}
-            />
-            <button
-              style={closeBtn}
-              onMouseEnter={() => setBtnHover("closeJson")}
-              onMouseLeave={() => setBtnHover("")}
-              onClick={() => setShowSubJson(false)}
-            >
-              Fermer
-            </button>
-          </div>
-        )}
-        {userId !== "alyssia" && (
-          <>
-            <button
-              style={mobileBtn}
-              onMouseEnter={() => setBtnHover("copySub")}
-              onMouseLeave={() => setBtnHover("")}
-              onClick={copyMySubscription}
-            >
-              Copier ma subscription
-            </button>
-            <button
-              style={mobileBtn}
-              onMouseEnter={() => setBtnHover("showSub")}
-              onMouseLeave={() => setBtnHover("")}
-              onClick={showMySubscription}
-            >
-              Afficher ma subscription
-            </button>
-            {!showGlobalNotif ? (
-              <button
-                style={mobileBtn}
-                onMouseEnter={() => setBtnHover("showGlobalNotif")}
-                onMouseLeave={() => setBtnHover("")}
-                onClick={() => setShowGlobalNotif(true)}
-              >
-                Notifications globales
-              </button>
-            ) : (
-              <div
-                style={{
-                  width: "100%",
-                  background: "#fff8fc",
-                  border: "1px solid #ffd6ef",
-                  borderRadius: 12,
-                  padding: 14,
-                  minWidth: 260,
-                  marginTop: 10,
-                }}
-              >
-                <div style={{ marginBottom: 8 }}>
-                  <input
-                    type="text"
-                    placeholder="Titre"
-                    value={globalNotifTitle}
-                    onChange={(e) => setGlobalNotifTitle(e.target.value)}
-                    style={{ ...mobileInput, marginBottom: 8 }}
-                  />
-                  <textarea
-                    placeholder="Message"
-                    value={globalNotifMsg}
-                    onChange={(e) => setGlobalNotifMsg(e.target.value)}
-                    style={{ ...mobileInput, minHeight: 40 }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                    width: "100%",
-                  }}
-                >
-                  <button
-                    style={{ ...closeBtn, marginBottom: 8 }}
-                    onMouseEnter={() => setBtnHover("cancelGlobalNotif")}
-                    onMouseLeave={() => setBtnHover("")}
-                    onClick={() => setShowGlobalNotif(false)}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    style={mobileBtn}
-                    onMouseEnter={() => setBtnHover("sendGlobalNotif")}
-                    onMouseLeave={() => setBtnHover("")}
-                    onClick={sendGlobalNotification}
-                  >
-                    Envoyer
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
         {/* Citation en bas, modifiable uniquement par Victor */}
         <div
           style={{
@@ -1901,8 +1788,11 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <BottomNavigation activePage="home" />
+      <BottomNavigation activePage="home" onAdminClick={handleAdminClick} />
       <PushNotificationManager />
+      {showAdminPanel && (
+        <AdminPanel userId={userId} onClose={() => setShowAdminPanel(false)} />
+      )}
       <style jsx global>{`
         @keyframes hourglass-flip {
           0% {

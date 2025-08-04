@@ -323,7 +323,6 @@ export default function Login() {
             sans-serif;
           padding-top: 160px;
           padding-bottom: 80px;
-          max-width: 420px;
           width: 100%;
           margin: 0 auto;
           box-sizing: border-box;

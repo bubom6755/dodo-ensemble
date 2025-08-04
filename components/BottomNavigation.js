@@ -1,9 +1,17 @@
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const BottomNavigation = ({ activePage }) => {
+const BottomNavigation = ({ activePage, onAdminClick }) => {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
+  const [userId, setUserId] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("userId");
+      setUserId(stored);
+    }
+  }, []);
 
   const navItems = [
     { id: "home", label: "Accueil", icon: "🏠", path: "/" },
@@ -16,6 +24,15 @@ const BottomNavigation = ({ activePage }) => {
     { id: "secrets", label: "Boîtes à Secrets", icon: "🎁", path: "/secrets" },
     { id: "films", label: "Films", icon: "🎬", path: "/films" },
   ];
+
+  // Ajouter l'item admin seulement pour Victor
+  const allMenuItems =
+    userId === "victor"
+      ? [
+          ...menuItems,
+          { id: "admin", label: "🔧 Admin", icon: "🔧", isAdmin: true },
+        ]
+      : menuItems;
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -184,17 +201,22 @@ const BottomNavigation = ({ activePage }) => {
             animation: "slideInUp 0.3s ease-out",
           }}
         >
-          {menuItems.map((item) => (
+          {allMenuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => {
-                handleNavigation(item.path);
-                setShowMenu(false);
+                if (item.isAdmin) {
+                  onAdminClick();
+                  setShowMenu(false);
+                } else {
+                  handleNavigation(item.path);
+                  setShowMenu(false);
+                }
               }}
               style={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "flex-start", // Changed from center to flex-start
+                justifyContent: "flex-start",
                 gap: 12,
                 background: "none",
                 border: "none",
@@ -202,13 +224,20 @@ const BottomNavigation = ({ activePage }) => {
                 width: "100%",
                 cursor: "pointer",
                 transition: "background 0.2s ease",
-                color: "#d0488f",
+                color: item.isAdmin ? "#ff4081" : "#d0488f",
                 fontSize: 16,
-                fontWeight: 500,
-                textAlign: "left", // Added to ensure text alignment
+                fontWeight: item.isAdmin ? 600 : 500,
+                textAlign: "left",
+                ...(item.isAdmin && {
+                  borderTop: "1px solid rgba(255, 200, 220, 0.3)",
+                  marginTop: "8px",
+                  paddingTop: "20px",
+                }),
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 200, 220, 0.1)";
+                e.currentTarget.style.background = item.isAdmin
+                  ? "rgba(255, 64, 129, 0.1)"
+                  : "rgba(255, 200, 220, 0.1)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "none";
