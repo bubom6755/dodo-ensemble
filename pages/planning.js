@@ -116,6 +116,20 @@ export default function Planning() {
     return userId;
   }
 
+  // Envoi d'une notification push via l'API Next.js
+  async function sendNativePushNotification({ title, message, targetUserId }) {
+    try {
+      await fetch("/api/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUserId, title, body: message }),
+      });
+    } catch (e) {
+      console.error("Erreur lors de l'envoi de la notification", e);
+      showToast("Erreur lors de l'envoi de la notification", "red");
+    }
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("userId");
@@ -341,6 +355,27 @@ export default function Planning() {
 
       console.log("savePlanning: succès");
       showToast("Planning sauvegardé ! ✨");
+      // Notification push à l'autre utilisateur
+      try {
+        const otherUser = ALL_USERS.find((u) => u !== userId);
+        const statusLabel =
+          (STATUS_OPTIONS.find((s) => s.value === editForm.status)?.label) ||
+          editForm.status;
+        const hoursPart =
+          editForm.status !== "rest" && editForm.start_time && editForm.end_time
+            ? ` (${editForm.start_time} - ${editForm.end_time})`
+            : "";
+        const message = `${displayUserName(
+          userId
+        )} a modifié son planning du ${editingDay.label}: ${statusLabel}${hoursPart}.`;
+        await sendNativePushNotification({
+          title: "Planning mis à jour",
+          message,
+          targetUserId: otherUser,
+        });
+      } catch (e) {
+        console.error("Erreur notification planning:", e);
+      }
       closeEditModal();
       await fetchPlannings(); // Attendre que les données soient rechargées
     } catch (error) {
@@ -446,6 +481,34 @@ export default function Planning() {
         showToast(`Erreur pour ${failedDays.length} jour(s)`, "red");
       } else {
         showToast(`${selectedDays.length} jour(s) sauvegardé(s) ! ✨`);
+        // Notification push à l'autre utilisateur
+        try {
+          const otherUser = ALL_USERS.find((u) => u !== userId);
+          const statusLabel =
+            (STATUS_OPTIONS.find((s) => s.value === bulkEditForm.status)?.label) ||
+            bulkEditForm.status;
+          const hoursPart =
+            bulkEditForm.status !== "rest" &&
+            bulkEditForm.start_time &&
+            bulkEditForm.end_time
+              ? ` (${bulkEditForm.start_time} - ${bulkEditForm.end_time})`
+              : "";
+          const daysLabels = selectedDays
+            .map((id) => DAYS_OF_WEEK.find((d) => d.id === id)?.label || id)
+            .join(", ");
+          const message = `${displayUserName(
+            userId
+          )} a modifié son planning pour ${
+            selectedDays.length > 1 ? `${selectedDays.length} jours` : "1 jour"
+          } (${daysLabels}) : ${statusLabel}${hoursPart}.`;
+          await sendNativePushNotification({
+            title: "Planning mis à jour",
+            message,
+            targetUserId: otherUser,
+          });
+        } catch (e) {
+          console.error("Erreur notification planning (bulk):", e);
+        }
         closeBulkEditModal();
         await fetchPlannings(); // Attendre que les données soient rechargées
       }

@@ -14,53 +14,60 @@ import AdminPanel from "../components/AdminPanel";
 
 const mobileMainBg = {
   minHeight: "100vh",
-  background: "linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)", // Lighter pinks
+  background:
+    "radial-gradient(1200px 800px at 50% -10%, rgba(255,182,219,0.35), transparent), linear-gradient(135deg, #fff7fb 0%, #ffeef8 100%)",
   padding: "0 8px",
   boxSizing: "border-box",
-  maxWidth: "100vw", // Utilise toute la largeur de l'écran
+  maxWidth: "100vw",
   width: "100%",
   margin: "0 auto",
+  color: "#4a4a4a",
+  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif",
 };
 
 const mobileCard = {
-  background: "#ffffff", // Pure white for a crisp look
-  borderRadius: 20, // Slightly more rounded
-  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // A softer, more spread-out shadow
-  padding: 24, // Slightly more padding for breathability
-  margin: "16px 0", // Reduced margin for better spacing
+  background: "#ffffff",
+  borderRadius: 20,
+  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)",
+  border: "1px solid #ffd6ef",
+  padding: 24,
+  margin: "16px 0",
   width: "100%",
-  maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
+  maxWidth: "min(600px, 100vw)",
   marginLeft: "auto",
   marginRight: "auto",
   boxSizing: "border-box",
-  transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out", // Smooth transition for hover
+  transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out, background 0.3s ease-out",
+  animation: "fadeInUp 0.4s ease-out",
 };
 
 const mobileCardHover = {
-  transform: "translateY(-4px)",
-  boxShadow: "0 10px 30px rgba(255, 200, 220, 0.6)", // More pronounced shadow
+  transform: "translateY(-3px)",
+  background: "#ffffff",
+  boxShadow: "0 14px 40px rgba(255, 200, 220, 0.45)",
 };
 
 const bigBtn = {
-  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)", // Stronger, vibrant pink
-  color: "#fff", // White text for contrast
+  background: "linear-gradient(90deg, #ff80ab 0%, #ff4081 100%)",
+  color: "#fff",
   border: "none",
-  borderRadius: 36, // More rounded, pill-like
-  fontSize: 20, // Slightly larger font
+  borderRadius: 36,
+  fontSize: 20,
   fontWeight: 700,
-  padding: "1.2rem 2.8rem", // More padding
+  padding: "1.2rem 2.8rem",
   margin: "0 18px 0 0",
-  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)", // Deeper, more noticeable shadow
+  boxShadow: "0 8px 18px rgba(255, 64, 129, 0.28)",
   cursor: "pointer",
-  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out", // Smoother transition
+  transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out, filter 0.2s ease-out",
   outline: "none",
   position: "relative",
   overflow: "hidden",
 };
 
 const bigBtnHover = {
-  transform: "translateY(-2px) scale(1.02)", // Lift and slightly scale
-  boxShadow: "0 8px 20px rgba(255, 64, 129, 0.6)", // More pronounced shadow
+  transform: "translateY(-2px) scale(1.02)",
+  boxShadow: "0 12px 26px rgba(255, 64, 129, 0.35)",
+  filter: "saturate(1.1)",
 };
 
 const mobileBtn = {
@@ -73,7 +80,7 @@ const mobileBtn = {
   padding: "1.1rem 0",
   margin: "0 0 16px 0",
   width: "100%",
-  boxShadow: "0 4px 12px rgba(255, 64, 129, 0.4)",
+  boxShadow: "0 6px 16px rgba(255, 64, 129, 0.28)",
   cursor: "pointer",
   transition: "transform 0.2s ease-out, box-shadow 0.2s ease-out",
   outline: "none",
@@ -81,29 +88,29 @@ const mobileBtn = {
 
 const mobileBtnHover = {
   transform: "translateY(-2px) scale(1.01)",
-  boxShadow: "0 8px 20px rgba(255, 64, 129, 0.6)",
+  boxShadow: "0 10px 22px rgba(255, 64, 129, 0.35)",
 };
 
 const mobileBtnActive = {
   transform: "scale(0.98)",
-  boxShadow: "0 2px 8px rgba(255, 64, 129, 0.3)",
+  boxShadow: "0 2px 8px rgba(255, 64, 129, 0.25)",
 };
 
 const closeBtn = {
   ...mobileBtn,
   background: "#fff",
-  color: "#ff4081", // Use the primary pink for border/text
-  border: "1.5px solid #ff80ab", // Thicker, more visible border
-  boxShadow: "none", // No shadow
+  color: "#ff4081",
+  border: "1.5px solid #ff80ab",
+  boxShadow: "none",
   fontSize: 16,
   padding: "0.8rem 0",
 };
 
 const closeBtnHover = {
-  background: "#fce4ec", // Light pink on hover
+  background: "#fce4ec",
   color: "#d0488f",
-  transform: "none", // Remove lift effect for close buttons
-  boxShadow: "0 2px 8px rgba(255, 200, 220, 0.4)", // Subtle shadow on hover
+  transform: "none",
+  boxShadow: "0 2px 8px rgba(255, 200, 220, 0.4)",
 };
 
 const closeBtnActive = {
@@ -111,30 +118,32 @@ const closeBtnActive = {
 };
 
 const sectionTitle = {
-  color: "#d0488f", // Use a more vibrant pink for titles
-  fontWeight: 700,
-  fontSize: 24, // Slightly larger
+  color: "#d0488f",
+  fontWeight: 800,
+  fontSize: 26,
   marginBottom: 12,
   marginTop: 0,
   textAlign: "center",
+  fontFamily: "Playfair Display, Georgia, serif",
+  letterSpacing: 0.2,
 };
 
 const mobileInput = {
   padding: 16,
-  borderRadius: 10, // Slightly more rounded
-  border: "1px solid #ffcccb", // Softer, light pink border
+  borderRadius: 10,
+  border: "1px solid #ffd6ef",
   fontSize: 18,
-  marginBottom: 16, // More spacing
-  background: "#fff8fb", // Very light pink background
+  marginBottom: 16,
+  background: "#fff8fc",
   width: "100%",
   boxSizing: "border-box",
-  color: "#4a4a4a", // Darker text for readability
+  color: "#4a4a4a",
   transition: "border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
 };
 
 const mobileTextarea = {
   ...mobileInput,
-  minHeight: 100, // Make it a bit shorter by default, still resizable
+  minHeight: 100,
   maxHeight: 250,
   fontFamily: "inherit",
   fontSize: 16,
@@ -145,9 +154,9 @@ const mobileTextarea = {
 
 const labelStyle = {
   fontWeight: 600,
-  color: "#d0488f", // Consistent label color
+  color: "#d0488f",
   marginRight: 8,
-  display: "block", // Make labels block level for better stacking with inputs
+  display: "block",
   marginBottom: 6,
   fontSize: 16,
 };
@@ -159,65 +168,92 @@ const answerIcon = {
 
 const calendarStyle = {
   background: "#ffffff",
-  borderRadius: 20, // Consistent rounded corners
-  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)", // Consistent shadow
-  padding: 28, // More padding
-  margin: "16px auto 0 auto", // Reduced top margin for better spacing
-  maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
+  borderRadius: 20,
+  boxShadow: "0 6px 24px rgba(255, 200, 220, 0.4)",
+  border: "1px solid rgba(255,214,239,0.8)",
+  padding: 28,
+  maxWidth: "min(600px, 100vw)",
 };
 const calendarHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 20, // More space
-  color: "#ff4081", // Stronger color for month/year
+  marginBottom: 20,
+  color: "#ff4081",
   fontWeight: 700,
   fontSize: 22,
 };
 const calendarGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(7, 1fr)",
-  gap: 4,
+  gap: 6,
+  padding: 6,
 };
 const dayCell = {
-  minHeight: 52, // Taller cells
-  borderRadius: 10, // Rounded cells
-  background: "#fefefe", // Very light background
+  minHeight: 60,
+  borderRadius: 14,
+  background: "#fff",
   textAlign: "center",
-  fontSize: 17,
+  fontSize: 16,
   color: "#888",
   cursor: "pointer",
   position: "relative",
   transition:
-    "background 0.2s ease-in-out, transform 0.1s ease-out, box-shadow 0.1s ease-out",
+    "background 0.2s ease-in-out, transform 0.12s ease-out, box-shadow 0.12s ease-out",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   flexDirection: "column",
+  border: "1px solid #ffd6ef",
+  boxShadow: "0 2px 8px rgba(255, 200, 220, 0.18)",
 };
 const dayCellEvent = {
   ...dayCell,
-  background: "#ffebee", // Softer event background
+  background: "#fff6f9",
   color: "#d0488f",
   fontWeight: 700,
-  border: "1.5px solid #ffcdd2", // Softer border
+  border: "1.5px solid #ffcdd2",
+  boxShadow: "0 4px 12px rgba(255, 200, 220, 0.26)",
 };
 const todayCell = {
   ...dayCell,
-  border: "2px solid #ff80ab", // Stronger border for today
-  background: "#fff0fa", // Light pink for today
-  fontWeight: 700,
+  border: "2px solid #ff80ab",
+  background: "linear-gradient(135deg, #fff0fa 0%, #fff6fb 100%)",
+  fontWeight: 800,
   color: "#d0488f",
+  boxShadow: "0 6px 16px rgba(255, 128, 171, 0.25)",
 };
 const eventDot = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-  background: "#ff4081", // Vibrant dot for event
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  background: "#ff4081",
   position: "absolute",
   left: "50%",
-  bottom: 8, // More space from bottom
+  bottom: 6,
   transform: "translateX(-50%)",
+  boxShadow: "0 0 4px rgba(255, 64, 129, 0.35)",
+};
+
+const eventCountBadge = {
+  position: "absolute",
+  left: "50%",
+  bottom: 2,
+  transform: "translateX(-50%)",
+  background: "#ff4081",
+  color: "#fff",
+  borderRadius: 8,
+  padding: "0 5px",
+  height: 14,
+  minWidth: 16,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 9,
+  fontWeight: 700,
+  lineHeight: 1,
+  boxShadow: "0 1px 3px rgba(255, 64, 129, 0.25)",
+  border: "1px solid #ffcdd2",
 };
 
 const modalOverlay = {
@@ -226,25 +262,25 @@ const modalOverlay = {
   left: 0,
   width: "100vw",
   height: "100vh",
-  background: "rgba(0,0,0,0.25)", // Slightly darker overlay
+  background: "rgba(0,0,0,0.35)",
   zIndex: 1000,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  backdropFilter: "blur(4px)", // Subtle blur for the background
-  // Add animation via CSS module or global CSS if needed
-  // animation: "fadeIn 0.3s ease-out",
+  backdropFilter: "blur(6px)",
 };
 const modalBox = {
-  background: "#ffffff",
-  borderRadius: 20,
-  boxShadow: "0 10px 40px rgba(184, 111, 165, 0.3)", // Deeper, more spread shadow
-  padding: 36, // More padding
-  minWidth: 340,
-  maxWidth: 400,
+  background: "linear-gradient(180deg, #ffffff 0%, #fff8fc 100%)",
+  borderRadius: 18,
+  boxShadow: "0 14px 44px rgba(255, 200, 220, 0.35)",
+  border: "1px solid #ffd6ef",
+  padding: 16,
+  width: "92vw",
+  maxWidth: 380,
+  maxHeight: "85vh",
+  display: "flex",
+  flexDirection: "column",
   zIndex: 1001,
-  // Add animation via CSS module or global CSS if needed
-  // animation: "slideInFromTop 0.3s ease-out",
 };
 
 const toastStyle = {
@@ -252,17 +288,15 @@ const toastStyle = {
   top: 24,
   left: "50%",
   transform: "translateX(-50%)",
-  background: "#ffebee", // Light pink background for toast
-  color: "#d0488f", // Default color for text
-  border: `1.5px solid #ffcdd2`, // Softer border
+  background: "#ffebee",
+  color: "#d0488f",
+  border: `1.5px solid #ffcdd2`,
   borderRadius: 12,
   padding: "12px 32px",
   fontWeight: 600,
   fontSize: 17,
   boxShadow: "0 4px 16px rgba(255, 200, 220, 0.4)",
   zIndex: 2000,
-  // Animations would need to be handled via global CSS or a library that supports keyframes in JS.
-  // animation: "slideInTop 0.3s ease-out, fadeOut 0.3s ease-out 2.7s forwards",
 };
 
 // ---------------------------------------------------
@@ -288,6 +322,9 @@ export default function Home() {
   });
   const [showEventModal, setShowEventModal] = useState(false);
   const [modalEvent, setModalEvent] = useState(null);
+  const [showDayEventsModal, setShowDayEventsModal] = useState(false);
+  const [dayEvents, setDayEvents] = useState([]);
+  const [dayEventsDate, setDayEventsDate] = useState("");
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState({
     date: "",
@@ -495,6 +532,19 @@ export default function Home() {
     setModalEvent(event);
     setShowEventModal(true);
   }
+
+  function openDayEventsModal(dateStr) {
+    const list = eventsByDate[dateStr] || [];
+    setDayEvents(list);
+    setDayEventsDate(dateStr);
+    setShowDayEventsModal(true);
+  }
+
+  function closeDayEventsModal() {
+    setShowDayEventsModal(false);
+    setDayEvents([]);
+    setDayEventsDate("");
+  }
   function closeEventModal() {
     setShowEventModal(false);
     setModalEvent(null);
@@ -583,7 +633,19 @@ export default function Home() {
   // Map des événements par date
   const eventsByDate = {};
   for (const ev of events) {
-    eventsByDate[ev.date] = ev;
+    if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
+    eventsByDate[ev.date].push(ev);
+  }
+  // Tri des événements d'un même jour par heure croissante (si présente)
+  for (const dateKey in eventsByDate) {
+    eventsByDate[dateKey].sort((a, b) => {
+      const aHas = !!a.time;
+      const bHas = !!b.time;
+      if (aHas && bHas) return a.time.localeCompare(b.time);
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return 0;
+    });
   }
 
   const displayName = userId
@@ -960,29 +1022,45 @@ export default function Home() {
     const now = new Date();
     const today = toLocalDateString(now);
 
-    return Object.values(eventsByDate)
-      .filter((event) => {
-        const eventDate = event.date;
-        if (eventDate < today) return false;
+    const futureEvents = events.filter((event) => {
+      const eventDate = event.date;
+      if (eventDate < today) return false;
+      if (eventDate === today && event.time) {
+        const [hours, minutes] = event.time.split(":").map(Number);
+        const eventTime = new Date();
+        eventTime.setHours(hours, minutes, 0, 0);
+        return eventTime > now;
+      }
+      return true;
+    });
 
-        if (eventDate === today && event.time) {
-          const [hours, minutes] = event.time.split(":");
-          const eventTime = new Date();
-          eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-          return eventTime > now;
-        }
+    const toDateTime = (e) => {
+      const dt = new Date(e.date);
+      if (e.time) {
+        const [h, m] = e.time.split(":").map(Number);
+        dt.setHours(h, m, 0, 0);
+      } else {
+        // Par défaut 18:00 si pas d'heure
+        dt.setHours(18, 0, 0, 0);
+      }
+      return dt;
+    };
 
-        return true;
-      })
-      .sort((a, b) => {
-        const aTime = getTimeUntilEvent(a.date, a.time);
-        const bTime = getTimeUntilEvent(b.date, b.time);
-        return aTime.isPast ? 1 : bTime.isPast ? -1 : 0;
-      })
-      .slice(0, 1); // Limiter à 1 événement pour le compte à rebours
+    futureEvents.sort((a, b) => toDateTime(a) - toDateTime(b));
+    return futureEvents.slice(0, 1);
   }
 
   const upcomingEvents = getUpcomingEvents();
+
+  // Statistiques rapides pour le bandeau d'accueil
+  const monthEventCount = events.length;
+  const todayEventsCount = (eventsByDate[todayStr]?.length || 0);
+  let nextEventLabel = "Aucun";
+  if (upcomingEvents.length > 0) {
+    const ue = upcomingEvents[0];
+    const tu = getTimeUntilEvent(ue.date, ue.time);
+    nextEventLabel = tu.isPast ? "Aujourd'hui" : tu.text;
+  }
 
   // État pour forcer le re-render du compte à rebours
   const [countdownTick, setCountdownTick] = useState(0);
@@ -1026,7 +1104,7 @@ export default function Home() {
           maxWidth: "min(600px, 100vw)", // Plus large sur les grands écrans, mais pas plus que 600px
           margin: "auto",
           padding: 0,
-          fontFamily: "sans-serif",
+          fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif",
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
@@ -1035,21 +1113,49 @@ export default function Home() {
           paddingBottom: 200, // Increased padding to make push notifications accessible
         }}
       >
+        {/* En-tête supprimé selon demande */}
         <div
-          style={{ ...mobileCard, marginTop: 16, textAlign: "center" }}
+          style={{
+            ...mobileCard,
+            marginTop: 16,
+            textAlign: "center",
+            background: "linear-gradient(135deg, #fff8fc 0%, #ffeef8 100%)",
+            border: "1px solid #ffd6ef",
+            position: "relative",
+            overflow: "hidden",
+          }}
           onMouseEnter={() => setBtnHover("card1")} // Using btnHover state for card hover
           onMouseLeave={() => setBtnHover("")}
         >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "3px",
+              background:
+                "linear-gradient(90deg, #ff80ab 0%, #ff4081 50%, #ff80ab 100%)",
+              animation: "shimmer 2s ease-in-out infinite",
+            }}
+          ></div>
           <h1
-            style={{ color: "#ff4081", fontSize: 28, margin: "18px 0 24px 0" }}
+            style={{
+              color: "#d0488f",
+              fontSize: 28,
+              margin: "18px 0 24px 0",
+              letterSpacing: 0.3,
+              fontWeight: 800,
+            }}
           >
             Tu dors avec moi ce soir ?
           </h1>
           <div style={{ fontSize: 16, color: "#888", marginBottom: 18 }}>
-            <span style={{ color: "#ff80ab" }}>
+            <span style={{ color: "#ff80ab", fontWeight: 700 }}>
               {formatDateFr(toLocalDateString(new Date()))}
             </span>
           </div>
+          {/* métriques retirées pour une esthétique plus épurée */}
           {loading ? (
             <div style={{ color: "#ff80ab", fontSize: 20, margin: "24px 0" }}>
               Chargement...
@@ -1141,7 +1247,9 @@ export default function Home() {
             </div>
           )}
         </div>
+        {/* Barre d'actions rapides supprimée selon demande */}
         {/* CALENDRIER EVENEMENTS */}
+        <h2 style={{ ...sectionTitle, marginTop: 18, marginBottom: 10 }}>Calendrier</h2>
         <section style={calendarStyle}>
           <div style={calendarHeader}>
             <button
@@ -1169,7 +1277,13 @@ export default function Home() {
             >
               ◀
             </button>
-            <span style={{ fontWeight: 700, fontSize: 20, color: "#ff4081" }}>
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: 20,
+                color: "#d0488f",
+              }}
+            >
               {calendarMonth.toLocaleString("fr-FR", {
                 month: "long",
                 year: "numeric",
@@ -1205,7 +1319,7 @@ export default function Home() {
             {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
               <div
                 key={d}
-                style={{ fontWeight: 600, color: "#ff80ab", padding: 4 }}
+                style={{ fontWeight: 700, color: "#d0488f", padding: 6, fontSize: 13 }}
               >
                 {d}
               </div>
@@ -1220,7 +1334,7 @@ export default function Home() {
             {monthDays.map((d) => {
               const dateStr = toLocalDateString(d);
               const isToday = dateStr === todayStr;
-              const hasEvent = !!eventsByDate[dateStr];
+              const hasEvent = (eventsByDate[dateStr]?.length || 0) > 0;
               return (
                 <div
                   key={dateStr}
@@ -1229,12 +1343,16 @@ export default function Home() {
                   }
                   onClick={() =>
                     hasEvent
-                      ? openEventModal(eventsByDate[dateStr])
+                      ? (eventsByDate[dateStr].length === 1
+                          ? openEventModal(eventsByDate[dateStr][0])
+                          : openDayEventsModal(dateStr))
                       : openEventForm(dateStr)
                   }
                   title={
                     hasEvent
-                      ? eventsByDate[dateStr].title
+                      ? (eventsByDate[dateStr].length === 1
+                          ? eventsByDate[dateStr][0].title
+                          : `${eventsByDate[dateStr].length} événements`)
                       : "Ajouter un événement"
                   }
                   onMouseEnter={(e) => {
@@ -1261,7 +1379,13 @@ export default function Home() {
                   }}
                 >
                   {d.getDate()}
-                  {hasEvent && <div style={eventDot}></div>}
+                  {hasEvent && (
+                    (eventsByDate[dateStr]?.length || 0) > 1 ? (
+                      <div style={eventCountBadge}>+{eventsByDate[dateStr].length}</div>
+                    ) : (
+                      <div style={eventDot}></div>
+                    )
+                  )}
                 </div>
               );
             })}
@@ -1426,36 +1550,31 @@ export default function Home() {
             <div
               style={{
                 ...modalBox,
-                maxWidth: 380,
                 padding: 0,
                 overflow: "hidden",
-                boxShadow: "0 8px 32px rgba(208, 72, 143, 0.18)",
-                borderRadius: 22,
-                background: "#fff",
-                margin: 0,
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div
                 style={{
-                  background: "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
-                  padding: "20px 28px 12px 28px",
-                  borderTopLeftRadius: 22,
-                  borderTopRightRadius: 22,
+                  background: "linear-gradient(90deg, #fff8fc 0%, #ffffff 100%)",
+                  padding: "16px 18px 10px 18px",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
                   borderBottom: "1px solid #f3d6e7",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: 12,
+                  gap: 10,
                 }}
               >
-                <div style={{ fontSize: 28, color: "#d0488f" }}>📅</div>
+                <div style={{ fontSize: 22, color: "#d0488f" }}>📅</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontWeight: 700,
-                      fontSize: 20,
+                      fontWeight: 800,
+                      fontSize: 18,
                       color: "#d0488f",
                       marginBottom: 2,
                       whiteSpace: "nowrap",
@@ -1469,9 +1588,9 @@ export default function Home() {
                       : modalEvent.title}
                   </div>
                   <div
-                    style={{ color: "#b86fa5", fontSize: 15, fontWeight: 500 }}
+                    style={{ color: "#b86fa5", fontSize: 13, fontWeight: 600 }}
                   >
-                    {modalEvent.date}
+                    {formatDateFr(modalEvent.date)}
                     {modalEvent.time && (
                       <span style={{ marginLeft: 8 }}>{modalEvent.time}</span>
                     )}
@@ -1480,23 +1599,21 @@ export default function Home() {
                 <button
                   onClick={closeEventModal}
                   style={{
-                    background: "none",
-                    border: "none",
-                    fontSize: 26,
-                    color: "#b86fa5",
+                    background: "#fff",
+                    border: "1px solid #ffd6ef",
+                    fontSize: 16,
+                    color: "#d0488f",
                     cursor: "pointer",
-                    padding: 0,
-                    lineHeight: 1,
-                    marginLeft: 8,
-                    transition: "color 0.15s",
+                    padding: "4px 10px",
+                    borderRadius: 999,
                   }}
                   title="Fermer"
                 >
-                  ×
+                  Fermer
                 </button>
               </div>
               {/* Body */}
-              <div style={{ padding: "22px 28px 18px 28px" }}>
+              <div style={{ padding: "12px 14px 14px 14px", overflowY: "auto" }}>
                 {/* Lieu */}
                 {modalEvent.location &&
                   (!modalEvent.is_mystery ||
@@ -1524,13 +1641,14 @@ export default function Home() {
                     isMysteryEventRevealed(modalEvent)) && (
                     <div
                       style={{
-                        color: "#444",
-                        fontSize: 15,
+                        color: "#4a4a4a",
+                        fontSize: 14,
                         marginBottom: 10,
-                        background: "#fff8fc",
-                        borderRadius: 8,
-                        padding: "10px 12px",
-                        fontWeight: 400,
+                        background: "#fff",
+                        border: "1px solid #ffd6ef",
+                        borderRadius: 10,
+                        padding: "12px 12px",
+                        fontWeight: 500,
                         wordBreak: "break-word",
                       }}
                     >
@@ -1560,15 +1678,94 @@ export default function Home() {
                 {/* Créateur */}
                 <div
                   style={{
-                    marginTop: 10,
+                    marginTop: 12,
                     color: "#b86fa5",
-                    fontSize: 13,
-                    fontWeight: 500,
+                    fontSize: 12,
+                    fontWeight: 700,
                     textAlign: "right",
+                    borderTop: "1px dashed #f3d6e7",
+                    paddingTop: 8,
                   }}
                 >
-                  Créé par {displayUserName(modalEvent.user_id)}
+                  👤 {displayUserName(modalEvent.user_id)}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* MODALE LISTE ÉVÉNEMENTS DU JOUR */}
+        {showDayEventsModal && (
+          <div style={modalOverlay} onClick={closeDayEventsModal}>
+            <div
+              style={{ ...modalBox, padding: 0, overflow: "hidden" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(90deg, #ffeef8 0%, #fff 100%)",
+                  padding: "20px 28px 12px 28px",
+                  borderTopLeftRadius: 22,
+                  borderTopRightRadius: 22,
+                  borderBottom: "1px solid #f3d6e7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontSize: 22, color: "#d0488f", fontWeight: 700 }}>
+                  {formatDateFr(dayEventsDate)}
+                </div>
+                <button
+                  onClick={closeDayEventsModal}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: 22,
+                    color: "#b86fa5",
+                    cursor: "pointer",
+                    padding: 8,
+                    lineHeight: 1,
+                    transition: "color 0.15s",
+                  }}
+                  title="Fermer"
+                >
+                  ×
+                </button>
+              </div>
+              <div style={{ padding: "8px 8px 8px 8px", maxHeight: "70vh", overflowY: "auto" }}>
+                {dayEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    onClick={() => {
+                      closeDayEventsModal();
+                      openEventModal(ev);
+                    }}
+                    style={{
+                      margin: "8px 12px",
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      border: "1px solid #ffd6ef",
+                      background: "#fff",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#fff8fc";
+                      e.currentTarget.style.borderColor = "#ff80ab";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#fff";
+                      e.currentTarget.style.borderColor = "#ffd6ef";
+                    }}
+                  >
+                    <div style={{ color: "#d0488f", fontWeight: 700, fontSize: 16 }}>
+                      {ev.is_mystery && !isMysteryEventRevealed(ev) ? "Événement mystère" : ev.title}
+                    </div>
+                    <div style={{ color: "#b86fa5", fontSize: 13, marginTop: 4 }}>
+                      {ev.time ? `⏰ ${ev.time}` : ""}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1577,15 +1774,43 @@ export default function Home() {
         {showEventForm && (
           <div style={modalOverlay} onClick={closeEventForm}>
             <form
-              style={modalBox}
+              style={{ ...modalBox }}
               onClick={(e) => e.stopPropagation()}
               onSubmit={submitEventForm}
             >
-              <h2 style={{ color: "#ff4081", fontSize: 20, marginBottom: 16 }}>
-                Nouvel événement
-              </h2>
-              <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Date</label>
+              <div
+                style={{
+                  background: "linear-gradient(90deg, #fff8fc 0%, #ffffff 100%)",
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  border: "1px solid #ffd6ef",
+                  marginBottom: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div style={{ color: "#d0488f", fontWeight: 800, fontSize: 16 }}>
+                  Nouvel événement
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEventForm}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #ffd6ef",
+                    color: "#d0488f",
+                    borderRadius: 999,
+                    padding: "4px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Fermer
+                </button>
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>Date</label>
                 <input
                   type="date"
                   name="date"
@@ -1595,8 +1820,8 @@ export default function Home() {
                   required
                 />
               </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Titre</label>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>Titre</label>
                 <input
                   type="text"
                   name="title"
@@ -1606,8 +1831,8 @@ export default function Home() {
                   required
                 />
               </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Heure</label>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>Heure</label>
                 <input
                   type="time"
                   name="time"
@@ -1616,8 +1841,8 @@ export default function Home() {
                   style={mobileInput}
                 />
               </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Lieu</label>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>Lieu</label>
                 <input
                   type="text"
                   name="location"
@@ -1626,13 +1851,13 @@ export default function Home() {
                   style={mobileInput}
                 />
               </div>
-              <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Description</label>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>Description</label>
                 <textarea
                   name="description"
                   value={eventForm.description}
                   onChange={handleEventFormChange}
-                  style={{ ...mobileInput, minHeight: 60, width: "100%" }}
+                  style={{ ...mobileInput, minHeight: 48, width: "100%" }}
                 />
               </div>
               {eventFormError && (
@@ -1640,26 +1865,29 @@ export default function Home() {
                   {eventFormError}
                 </div>
               )}
-              <div style={{ textAlign: "right" }}>
-                <button
-                  type="button"
-                  style={{
-                    ...closeBtn, // Use the new closeBtn style
-                    marginRight: 10,
-                  }}
-                  onMouseEnter={() => setBtnHover("cancelEvent")}
-                  onMouseLeave={() => setBtnHover("")}
-                  onClick={closeEventForm}
-                >
-                  Annuler
-                </button>
+              <div style={{ marginTop: 10 }}>
                 <button
                   type="submit"
-                  style={{ ...bigBtn, fontSize: 16 }}
+                  style={{ ...bigBtn, width: "100%", fontSize: 16, padding: "0.9rem 1.2rem" }}
                   onMouseEnter={() => setBtnHover("submitEvent")}
                   onMouseLeave={() => setBtnHover("")}
                 >
                   Enregistrer
+                </button>
+                <button
+                  type="button"
+                  onClick={closeEventForm}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#d0488f",
+                    fontWeight: 600,
+                    marginTop: 8,
+                    width: "100%",
+                    cursor: "pointer",
+                  }}
+                >
+                  Annuler
                 </button>
               </div>
             </form>

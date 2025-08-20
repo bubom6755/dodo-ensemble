@@ -37,6 +37,19 @@ export default function Agenda() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  // Envoi d'une notification push via l'API Next.js
+  async function sendNativePushNotification({ title, message, targetUserId }) {
+    try {
+      await fetch("/api/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUserId, title, body: message }),
+      });
+    } catch (e) {
+      console.error("Erreur lors de l'envoi de la notification", e);
+    }
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("userId");
@@ -51,6 +64,27 @@ export default function Agenda() {
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  // Abonnement temps réel: refléter immédiatement les validations/rejets
+  useEffect(() => {
+    const channel = supabase
+      .channel("events-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        (payload) => {
+          fetchEvents();
+          if (payload?.new && showEventModal && modalEvent && payload.new.id === modalEvent.id) {
+            setModalEvent(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [showEventModal, modalEvent]);
 
   async function fetchEvents() {
     const today = new Date().toISOString().split("T")[0];
@@ -268,6 +302,26 @@ export default function Agenda() {
     if (error) {
       showToast("Erreur lors de la validation", "#f44336");
     } else {
+      // Notifier le créateur de l'événement
+      try {
+        const decisionLabel =
+          action === "validate"
+            ? "a validé"
+            : action === "reject"
+            ? "a refusé"
+            : "a remis en attente";
+        const targetUserId = modalEvent.user_id; // notifier le créateur
+        await sendNativePushNotification({
+          title: "Mise à jour d'un événement",
+          message: `${displayUserName(userId)} ${decisionLabel} l'événement : "${modalEvent.title}" le ${formatDateFr(
+            modalEvent.date
+          )}${modalEvent.time ? ` à ${modalEvent.time}` : ""}`,
+          targetUserId,
+        });
+      } catch (e) {
+        console.error("Erreur notification validation évènement:", e);
+      }
+
       closeEventModal();
       fetchEvents();
       let message;
@@ -370,20 +424,19 @@ export default function Agenda() {
                       <span className="event-creator">
                         👤 {displayUserName(event.user_id)}
                       </span>
-                      {!isEventCreator(event) &&
-                        event.partner_validated !== null && (
-                          <span
-                            className={`event-status ${
-                              event.partner_validated === true
-                                ? "validated"
-                                : "rejected"
-                            }`}
-                          >
-                            {event.partner_validated === true
-                              ? "✅ Validé"
-                              : "❌ Refusé"}
-                          </span>
-                        )}
+                      {event.partner_validated !== null && (
+                        <span
+                          className={`event-status ${
+                            event.partner_validated === true
+                              ? "validated"
+                              : "rejected"
+                          }`}
+                        >
+                          {event.partner_validated === true
+                            ? "✅ Validé"
+                            : "❌ Refusé"}
+                        </span>
+                      )}
                     </div>
                     {event.is_mystery && (
                       <div className="timeline-mystery">🎭 Mystère</div>
@@ -574,26 +627,24 @@ export default function Agenda() {
                     {displayUserName(modalEvent.user_id)}
                   </span>
                 </div>
-                {!isEventCreator(modalEvent) && (
-                  <div className="event-validation-status">
-                    <span className="validation-label">Statut :</span>
-                    <span
-                      className={`validation-status ${
-                        modalEvent.partner_validated === null
-                          ? "pending"
-                          : modalEvent.partner_validated === true
-                          ? "validated"
-                          : "rejected"
-                      }`}
-                    >
-                      {modalEvent.partner_validated === null
-                        ? "⏳ En attente"
+                <div className="event-validation-status">
+                  <span className="validation-label">Statut :</span>
+                  <span
+                    className={`validation-status ${
+                      modalEvent.partner_validated === null
+                        ? "pending"
                         : modalEvent.partner_validated === true
-                        ? "✅ Validé"
-                        : "❌ Refusé"}
-                    </span>
-                  </div>
-                )}
+                        ? "validated"
+                        : "rejected"
+                    }`}
+                  >
+                    {modalEvent.partner_validated === null
+                      ? "⏳ En attente"
+                      : modalEvent.partner_validated === true
+                      ? "✅ Validé"
+                      : "❌ Refusé"}
+                  </span>
+                </div>
               </div>
 
               <div className="event-actions">

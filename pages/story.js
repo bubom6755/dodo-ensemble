@@ -10,6 +10,18 @@ export default function Story() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [editingStory, setEditingStory] = useState(null);
+  const [showCalendarEventModal, setShowCalendarEventModal] = useState(false);
+  const [editingCalendarEvent, setEditingCalendarEvent] = useState(null);
+  const [calendarEventForm, setCalendarEventForm] = useState({
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    is_mystery: false,
+  });
+  const [confirmState, setConfirmState] = useState({ open: false, message: "", onConfirm: null });
   const [stories, setStories] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [responses, setResponses] = useState([]);
@@ -103,11 +115,13 @@ export default function Story() {
       date: new Date().toISOString().split("T")[0],
       category: "moment",
     });
+    setEditingStory(null);
     setShowAddModal(true);
   }
 
   function closeAddModal() {
     setShowAddModal(false);
+    setEditingStory(null);
   }
 
   function openEventModal(event = null) {
@@ -146,19 +160,50 @@ export default function Story() {
     setNewEvent({ ...newEvent, [e.target.name]: e.target.value });
   }
 
+  function handleCalendarEventChange(e) {
+    const { name, value, type, checked } = e.target;
+    setCalendarEventForm({
+      ...calendarEventForm,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  }
+
+  function openConfirm(message, onConfirm) {
+    setConfirmState({ open: true, message, onConfirm });
+  }
+
+  function closeConfirm() {
+    setConfirmState({ open: false, message: "", onConfirm: null });
+  }
+
   async function saveStory() {
     if (!newStory.title.trim() || !newStory.content.trim()) {
       showToast("Titre et contenu obligatoires", "red");
       return;
     }
 
-    const { error } = await supabase.from("stories").insert({
-      title: newStory.title,
-      content: newStory.content,
-      date: newStory.date,
-      category: newStory.category,
-      user_id: userId,
-    });
+    let error;
+    if (editingStory) {
+      const { error: updateError } = await supabase
+        .from("stories")
+        .update({
+          title: newStory.title,
+          content: newStory.content,
+          date: newStory.date,
+          category: newStory.category,
+        })
+        .eq("id", editingStory.rawId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase.from("stories").insert({
+        title: newStory.title,
+        content: newStory.content,
+        date: newStory.date,
+        category: newStory.category,
+        user_id: userId,
+      });
+      error = insertError;
+    }
 
     if (error) {
       console.error("Erreur saveStory:", error);
@@ -166,7 +211,7 @@ export default function Story() {
       return;
     }
 
-    showToast("Histoire ajoutée ! 📖");
+    showToast(editingStory ? "Souvenir modifié ! ✨" : "Histoire ajoutée ! 📖");
     closeAddModal();
     fetchAllData();
   }
@@ -231,6 +276,87 @@ export default function Story() {
     fetchAllData();
   }
 
+  async function deleteStoryById(storyId) {
+    const { error } = await supabase.from("stories").delete().eq("id", storyId);
+    if (error) {
+      console.error("Erreur deleteStory:", error);
+      showToast("Erreur lors de la suppression", "red");
+      return;
+    }
+    showToast("Souvenir supprimé ! 🗑️");
+    fetchAllData();
+  }
+
+  function openStoryEditModal(item) {
+    setEditingStory(item);
+    setNewStory({
+      title: item.title || "",
+      content: item.description || "",
+      date: item.date || new Date().toISOString().split("T")[0],
+      category: item.category || "autre",
+    });
+    setShowAddModal(true);
+  }
+
+  async function openCalendarEventEditModal(item) {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, description, date, time, location, is_mystery")
+        .eq("id", item.rawId)
+        .single();
+      if (error) throw error;
+      setEditingCalendarEvent(data);
+      setCalendarEventForm({
+        title: data.title || "",
+        description: data.description || "",
+        date: data.date || "",
+        time: data.time || "",
+        location: data.location || "",
+        is_mystery: !!data.is_mystery,
+      });
+      setShowCalendarEventModal(true);
+    } catch (e) {
+      console.error("Erreur chargement événement:", e);
+      showToast("Impossible de charger l'événement", "red");
+    }
+  }
+
+  async function saveCalendarEvent() {
+    if (!editingCalendarEvent) return;
+    const { error } = await supabase
+      .from("events")
+      .update({
+        title: calendarEventForm.title,
+        description: calendarEventForm.description,
+        date: calendarEventForm.date,
+        time: calendarEventForm.time || null,
+        location: calendarEventForm.location || null,
+        is_mystery: calendarEventForm.is_mystery,
+      })
+      .eq("id", editingCalendarEvent.id);
+    if (error) {
+      console.error("Erreur saveCalendarEvent:", error);
+      showToast("Erreur lors de l'enregistrement", "red");
+      return;
+    }
+    showToast("Événement modifié ! ✨");
+    setShowCalendarEventModal(false);
+    setEditingCalendarEvent(null);
+    fetchAllData();
+  }
+
+  async function deleteCalendarEventById(eventId) {
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (error) {
+      console.error("Erreur delete calendar event:", error);
+      showToast("Erreur lors de la suppression", "red");
+      return;
+    }
+    showToast("Événement supprimé ! 🗑️");
+    fetchAllData();
+  }
+
   function formatDateFr(dateStr) {
     const date = new Date(dateStr);
     return date
@@ -283,6 +409,8 @@ export default function Story() {
       timeline.push({
         ...milestone,
         source: "milestone",
+        table: "milestones",
+        rawId: milestone.id,
       });
     });
 
@@ -298,6 +426,8 @@ export default function Story() {
         source: "custom",
         user_id: story.user_id,
         category: story.category,
+        table: "stories",
+        rawId: story.id,
       });
     });
 
@@ -315,6 +445,8 @@ export default function Story() {
         source: "event",
         user_id: event.user_id,
         is_mystery: event.is_mystery,
+        table: "events",
+        rawId: event.id,
       });
     });
 
@@ -366,7 +498,18 @@ export default function Story() {
           </div>
         ) : (
           <div className="story-book">
-            {timeline.map((item, index) => (
+            {timeline
+              .filter((it) => {
+                const key = `${it.table || it.source}:${it.rawId || it.id}`;
+                try {
+                  const raw = localStorage.getItem("story_hidden_items");
+                  const arr = raw ? JSON.parse(raw) : [];
+                  return !arr.includes(key);
+                } catch (_) {
+                  return true;
+                }
+              })
+              .map((item, index) => (
               <div
                 key={item.id}
                 className="story-page"
@@ -390,18 +533,47 @@ export default function Story() {
                               : "📖 Souvenir"}
                           </span>
                         )}
-                        {item.source === "milestone" && userId === "victor" && (
+                        {(item.source === "milestone" || item.source === "custom" || item.source === "event") && (
                           <div className="page-actions">
                             <button
                               className="edit-button"
-                              onClick={() => openEventModal(item)}
+                              onClick={() =>
+                                item.source === "milestone"
+                                  ? openEventModal(item)
+                                  : item.source === "custom"
+                                  ? openStoryEditModal(item)
+                                  : openCalendarEventEditModal(item)
+                              }
                               title="Modifier"
                             >
                               ✏️
                             </button>
                             <button
                               className="delete-button"
-                              onClick={() => deleteEvent(item.id)}
+                              onClick={() => {
+                                const key = `${item.table || item.source}:${item.rawId || item.id}`;
+                                openConfirm(
+                                  "Masquer cet élément uniquement dans 'Notre histoire' ?",
+                                  () => {
+                                    try {
+                                      const raw = localStorage.getItem("story_hidden_items");
+                                      const arr = raw ? JSON.parse(raw) : [];
+                                      if (!arr.includes(key)) {
+                                        const next = [...arr, key];
+                                        localStorage.setItem(
+                                          "story_hidden_items",
+                                          JSON.stringify(next)
+                                        );
+                                      }
+                                      // Re-rendu en rechargeant les données
+                                      fetchAllData();
+                                      showToast("Masqué de 'Notre histoire' ✨");
+                                    } catch (_) {
+                                      showToast("Masquage indisponible", "red");
+                                    }
+                                  }
+                                );
+                              }}
                               title="Supprimer"
                             >
                               🗑️
@@ -594,6 +766,128 @@ export default function Story() {
               </button>
               <button className="submit-button" onClick={saveEvent}>
                 {editingEvent ? "✏️ Modifier" : "⭐ Créer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'édition d'un événement du calendrier (table events) */}
+      {showCalendarEventModal && (
+        <div className="modal-overlay" onClick={() => setShowCalendarEventModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">📅</div>
+              <h2 className="modal-title">Modifier l'événement</h2>
+              <p className="modal-subtitle">Mettez à jour les informations</p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📝 Titre</label>
+              <input
+                type="text"
+                name="title"
+                value={calendarEventForm.title}
+                onChange={handleCalendarEventChange}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📅 Date</label>
+              <input
+                type="date"
+                name="date"
+                value={calendarEventForm.date}
+                onChange={handleCalendarEventChange}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">⏰ Heure (optionnel)</label>
+              <input
+                type="time"
+                name="time"
+                value={calendarEventForm.time}
+                onChange={handleCalendarEventChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">📍 Lieu (optionnel)</label>
+              <input
+                type="text"
+                name="location"
+                value={calendarEventForm.location}
+                onChange={handleCalendarEventChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">🎭 Mystère</label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="checkbox"
+                  name="is_mystery"
+                  checked={calendarEventForm.is_mystery}
+                  onChange={handleCalendarEventChange}
+                />
+                <span>Marquer comme événement mystère</span>
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">💭 Description (optionnel)</label>
+              <textarea
+                name="description"
+                value={calendarEventForm.description}
+                onChange={handleCalendarEventChange}
+                className="form-textarea"
+              />
+            </div>
+
+            <div className="form-actions">
+              <button
+                className="cancel-button"
+                onClick={() => setShowCalendarEventModal(false)}
+              >
+                Annuler
+              </button>
+              <button className="submit-button" onClick={saveCalendarEvent}>
+                💾 Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation générique */}
+      {confirmState.open && (
+        <div className="modal-overlay" onClick={closeConfirm}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">⚠️</div>
+              <h2 className="modal-title">Confirmation</h2>
+              <p className="modal-subtitle">{confirmState.message}</p>
+            </div>
+            <div className="form-actions">
+              <button className="cancel-button" onClick={closeConfirm}>
+                Annuler
+              </button>
+              <button
+                className="submit-button"
+                onClick={() => {
+                  const fn = confirmState.onConfirm;
+                  closeConfirm();
+                  fn && fn();
+                }}
+              >
+                Confirmer
               </button>
             </div>
           </div>
@@ -1050,6 +1344,8 @@ export default function Story() {
           border-radius: 24px;
           padding: 32px;
           max-width: 400px;
+          max-height: 85vh;
+          overflow-y: auto;
           width: 100%;
           border: 2px solid rgba(255, 182, 193, 0.3);
           box-shadow: 0 20px 60px rgba(255, 182, 193, 0.3);
